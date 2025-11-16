@@ -52,10 +52,10 @@ export function GroupedInboxView({ groupedItems }: GroupedInboxViewProps) {
           <Card key={projectKey} className="overflow-hidden">
             <button
               onClick={() => toggleProject(projectKey)}
-              className="w-full px-4 py-3 flex items-center gap-2 hover:bg-accent transition-colors text-left"
+              className="w-full px-4 flex items-center gap-2 transition-colors text-left"
             >
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 flex-shrink-0 " />
               ) : (
                 <ChevronRight className="h-4 w-4 flex-shrink-0" />
               )}
