@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import type { InboxItem } from '@/lib/schema/inbox.schema';
 import { GitPullRequest, CheckSquare, Activity, ListTodo } from 'lucide-react';
+const { DateTime } = require('luxon');
 
 interface InboxItemCardProps {
   item: InboxItem;
@@ -55,20 +56,6 @@ const getPriorityColor = (priority?: InboxItem['priority']) => {
 export function InboxItemCard({ item }: InboxItemCardProps) {
   const [imageError, setImageError] = React.useState(false);
 
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor(diff / (1000 * 60));
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return 'just now';
-  };
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -110,7 +97,7 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
             )}
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>{formatDate(item.updatedDate)}</span>
+              <span>{DateTime.fromISO(item.updatedDate).toRelative()}</span>
               
               {item.repository && (
                 <span className="truncate">{item.repository.name}</span>
