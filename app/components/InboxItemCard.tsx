@@ -90,11 +90,11 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
               />
             </div>
 
-            {item.description && (
+            {/* {item.description && (
               <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                 {item.description}
               </p>
-            )}
+            )} */}
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>{DateTime.fromISO(item.updatedDate).toRelative()}</span>
