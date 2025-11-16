@@ -1,6 +1,6 @@
 import type { AdoPipeline, AdoPipelineRun } from "./schema/pipeline.schema";
 import type { AdoProject } from "./schema/project.schema";
-import type { AdoPullRequest } from "./schema/pr.schema";
+import { AdoPullRequestSchema, type AdoPullRequest } from "./schema/pr.schema";
 import type { AdoWorkItem } from "./schema/work-item.schema";
 import type { AdoInstance } from "./schema/instance.schema";
 
@@ -60,7 +60,8 @@ export class AdoClient {
     }
 
     const data = await this.fetch<{ value: AdoPullRequest[] }>(url);
-    return data.value;
+    const pullRequests = data.value.map(pr => AdoPullRequestSchema.parse(pr));
+    return pullRequests;
   }
 
   async getWorkItemsAssignedToMe(

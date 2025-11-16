@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const AdoPullRequestSchema = z.object({
-  id: z.string(),
+  codeReviewId: z.number(),
   pullRequestId: z.number(),
   repository: z.object({
     id: z.string(),
@@ -29,5 +29,20 @@ export const AdoPullRequestSchema = z.object({
       vote: z.number(),
     })
   ).optional(),
+}).transform((data) => {
+  // Extract PR ID from the API URL
+  const prId = data.url.split("/").pop();
+
+  // Extract org name from the URL
+  const org = data.url.split("/")[3];
+  // Build UI URL
+  const uiUrl =
+    `https://dev.azure.com/${org}/${data.repository.project.name}/` +
+    `_git/${data.repository.name}/pullrequest/${prId}`;
+
+  return {
+    ...data,
+    uiUrl,
+  };
 });
 export type AdoPullRequest = z.infer<typeof AdoPullRequestSchema>;

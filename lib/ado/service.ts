@@ -24,6 +24,8 @@ export class AdoService {
     pr: AdoPullRequest,
     instance: AdoInstance
   ): InboxItem {
+
+    // Look into how we can improve this structure
     return {
       id: `pr-${instance.id}-${pr.pullRequestId}`,
       type: 'pullRequest',
@@ -32,7 +34,7 @@ export class AdoService {
       status: pr.status,
       createdDate: pr.creationDate,
       updatedDate: pr.creationDate,
-      url: pr.url,
+      url: pr.uiUrl,
       project: {
         id: pr.repository.project.id,
         name: pr.repository.project.name,
@@ -154,7 +156,7 @@ export class AdoService {
         const prs = await client.getPullRequestsAssignedToMe();
         allItems.push(...prs.map((pr) => this.convertPullRequestToInboxItem(pr, instance)));
 
-        // Fetch work items assigned to me
+        // Fetch work items assigned to me!
         const workItems = await client.getWorkItemsAssignedToMe(
           undefined,
           this.config.userEmail
