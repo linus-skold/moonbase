@@ -209,10 +209,8 @@ export class AdoService {
 
   groupInboxItems(items: InboxItem[]): GroupedInboxItems {
     const grouped: GroupedInboxItems = {};
-
     for (const item of items) {
-      const projectKey = `${item.instance.id}-${item.project.id}`;
-
+      const projectKey = `${item.project.name}`;
       if (!grouped[projectKey]) {
         grouped[projectKey] = {
           project: item.project,
@@ -220,10 +218,8 @@ export class AdoService {
           items: [],
         };
       }
-
       grouped[projectKey].items.push(item);
     }
-
     return grouped;
   }
 

@@ -95,8 +95,7 @@ export default function AdoInboxPage() {
     // Re-group the filtered and sorted items
     const regrouped: GroupedInboxItems = {};
     filtered.forEach((item) => {
-      const projectKey = `${item.instance.id}-${item.project.id}`;
-
+      const projectKey = `${item.project.name}`;
       if (!regrouped[projectKey]) {
         regrouped[projectKey] = {
           project: item.project,
