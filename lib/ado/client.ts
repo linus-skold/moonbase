@@ -49,6 +49,8 @@ export class AdoClient {
     // Get pull requests where the current user is a reviewer
     const searchCriteria = new URLSearchParams({
       "searchCriteria.status": "active",
+      "searchCriteria.reviewerId": "me",
+      "searchCriteria.creatorId": "me",
       "api-version": "7.1",
     });
 
@@ -73,8 +75,8 @@ export class AdoClient {
       query: `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.CreatedDate], [System.ChangedDate]
               FROM WorkItems
               WHERE [System.AssignedTo] = @Me
-              AND [System.State] <> 'Closed'
-              AND [System.State] <> 'Removed'
+              AND [System.State] = 'Active'
+              AND [System.State] = 'New'
               ORDER BY [System.ChangedDate] DESC`,
     };
 
