@@ -6,5 +6,6 @@ export const AdoInstance = z.object({
   baseUrl: z.url(),
   personalAccessToken: z.string(),
   enabled: z.boolean(),
+  userId: z.string(),
 });
 export type AdoInstance = z.infer<typeof AdoInstance>;

@@ -9,6 +9,29 @@ import type { AdoConfig} from '@/lib/ado/schema/config.schema';
 import type { AdoInstance } from '@/lib/ado/schema/instance.schema';
 import { Plus, Trash2, Save, ArrowLeft, Eye, EyeOff, Download } from 'lucide-react';
 
+async function fetchAuthenticatedUserId(baseUrl: string, pat: string): Promise<string | null> {
+  try {
+    const url = `${baseUrl}/_apis/connectionData`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Basic ${btoa(`:${pat}`)}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch user ID: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.authenticatedUser?.id || null;
+  } catch (error) {
+    console.error('Error fetching authenticated user ID:', error);
+    return null;
+  }
+}
+
 export default function AdoSettingsPage() {
   const [config, setConfig] = React.useState<AdoConfig>({
     instances: [],
@@ -26,17 +49,47 @@ export default function AdoSettingsPage() {
     }
   }, []);
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     setIsSaving(true);
-    const success = saveConfig(config);
     
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      // Fetch userId for instances where it's empty
+      const updatedInstances = await Promise.all(
+        config.instances.map(async (instance) => {
+          if (instance.personalAccessToken) {
+            const userId = await fetchAuthenticatedUserId(
+              instance.baseUrl || `https://dev.azure.com/${instance.organization}`,
+              instance.personalAccessToken
+            );
+            
+            if (userId) {
+              console.log(`Fetched userId for instance ${instance.name}: ${userId}`);
+              return { ...instance, userId };
+            }
+            else {
+              console.warn(`Could not fetch userId for instance ${instance.name}`);
+            }
+          }
+          return instance;
+        })
+      );
+      
+      const updatedConfig = {
+        ...config,
+        instances: updatedInstances,
+      };
+      
+      const success = saveConfig(updatedConfig);
+      
       if (success) {
-        // Optionally show success toast
+        setConfig(updatedConfig);
         console.log('Configuration saved successfully');
       }
-    }, 500);
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleExportConfig = () => {
@@ -51,6 +104,7 @@ export default function AdoSettingsPage() {
       baseUrl: '',
       personalAccessToken: '',
       enabled: true,
+      userId: '',
     };
 
     setConfig({
