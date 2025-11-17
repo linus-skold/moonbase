@@ -9,6 +9,7 @@ export class AdoClient {
   private organization: string;
   private token: string;
   private headers: HeadersInit;
+  private userId: string;
 
   constructor(instance: AdoInstance) {
     this.organization = instance.organization;
@@ -21,6 +22,7 @@ export class AdoClient {
         "base64"
       )}`,
     };
+    this.userId = instance.userId;
   }
 
   private async fetch<T>(url: string): Promise<T> {
@@ -49,7 +51,7 @@ export class AdoClient {
     // Get pull requests where the current user is a reviewer
     const searchCriteria = new URLSearchParams({
       "searchCriteria.status": "active",
-      "searchCriteria.reviewerId": "me",
+      "searchCriteria.reviewerId": `${this.userId}`,
       "api-version": "7.1",
     });
 
@@ -61,7 +63,7 @@ export class AdoClient {
     }
 
     const data = await this.fetch<{ value: AdoPullRequest[] }>(url);
-    const pullRequests = data.value.map(pr => AdoPullRequestSchema.parse(pr));
+    const pullRequests = data.value.map(pr => AdoPullRequestSchema.parse(pr)).filter(pr => pr.reviewers?.some(reviewer => reviewer.displayName && reviewer.displayName === "Linus Sköld"));
     return pullRequests;
   }
 
@@ -74,7 +76,7 @@ export class AdoClient {
       query: `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.CreatedDate], [System.ChangedDate]
               FROM WorkItems
               WHERE [System.AssignedTo] = @Me
-              AND ([System.State] = 'Active' OR [System.State] = 'New')
+              AND ([System.State] = 'Active' OR [System.State] = 'New' OR [System.State] = 'In Progress' OR [System.State] = 'Blocked')
               ORDER BY [System.ChangedDate] DESC`,
     };
 
