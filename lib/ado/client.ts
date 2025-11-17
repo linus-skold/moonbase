@@ -50,7 +50,6 @@ export class AdoClient {
     const searchCriteria = new URLSearchParams({
       "searchCriteria.status": "active",
       "searchCriteria.reviewerId": "me",
-      "searchCriteria.creatorId": "me",
       "api-version": "7.1",
     });
 
