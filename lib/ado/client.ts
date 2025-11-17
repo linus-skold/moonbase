@@ -75,8 +75,7 @@ export class AdoClient {
       query: `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.CreatedDate], [System.ChangedDate]
               FROM WorkItems
               WHERE [System.AssignedTo] = @Me
-              AND [System.State] = 'Active'
-              AND [System.State] = 'New'
+              AND ([System.State] = 'Active' OR [System.State] = 'New')
               ORDER BY [System.ChangedDate] DESC`,
     };
 
