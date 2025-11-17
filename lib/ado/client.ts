@@ -63,7 +63,7 @@ export class AdoClient {
     }
 
     const data = await this.fetch<{ value: AdoPullRequest[] }>(url);
-    const pullRequests = data.value.map(pr => AdoPullRequestSchema.parse(pr)).filter(pr => pr.reviewers?.some(reviewer => reviewer.displayName && reviewer.displayName === "Linus Sköld"));
+    const pullRequests = data.value.map(pr => AdoPullRequestSchema.parse(pr));
     return pullRequests;
   }
 
