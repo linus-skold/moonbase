@@ -1,4 +1,4 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
+import { Calendar, Home, Inbox, Search, Settings, Layers } from "lucide-react"
 
 import {
   Sidebar,
@@ -19,11 +19,6 @@ const items = [
     icon: Home,
   },
   {
-    title: "ADO Inbox",
-    url: "/integrations/ado",
-    icon: Inbox,
-  },
-  {
     title: "Calendar",
     url: "#",
     icon: Calendar,
@@ -33,8 +28,19 @@ const items = [
     url: "#",
     icon: Search,
   },
+]
+
+const integrations = [
   {
-    title: "Settings",
+    title: "Azure DevOps",
+    url: "/integrations/ado",
+    icon: Layers,
+  },
+]
+
+const settings = [
+  {
+    title: "ADO Settings",
     url: "/integrations/ado/settings",
     icon: Settings,
   },
@@ -45,10 +51,46 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        <SidebarGroup>
+          <SidebarGroupLabel>Integrations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {integrations.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settings.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
