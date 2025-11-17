@@ -9,9 +9,9 @@ import type { AdoConfig} from '@/lib/ado/schema/config.schema';
 import type { AdoInstance } from '@/lib/ado/schema/instance.schema';
 import { Plus, Trash2, Save, ArrowLeft, Eye, EyeOff, Download } from 'lucide-react';
 
-async function fetchAuthenticatedUserId(organization: string, pat: string): Promise<string | null> {
+async function fetchAuthenticatedUserId(baseUrl: string, pat: string): Promise<string | null> {
   try {
-    const url = `https://dev.azure.com/${organization}/_apis/connectionData`;
+    const url = `${baseUrl}/_apis/connectionData`;
     const response = await fetch(url, {
       headers: {
         'Authorization': `Basic ${btoa(`:${pat}`)}`,
@@ -56,15 +56,18 @@ export default function AdoSettingsPage() {
       // Fetch userId for instances where it's empty
       const updatedInstances = await Promise.all(
         config.instances.map(async (instance) => {
-          if (instance.userId === '' && instance.organization && instance.personalAccessToken) {
+          if (instance.personalAccessToken) {
             const userId = await fetchAuthenticatedUserId(
-              instance.organization,
+              instance.baseUrl || `https://dev.azure.com/${instance.organization}`,
               instance.personalAccessToken
             );
             
             if (userId) {
               console.log(`Fetched userId for instance ${instance.name}: ${userId}`);
               return { ...instance, userId };
+            }
+            else {
+              console.warn(`Could not fetch userId for instance ${instance.name}`);
             }
           }
           return instance;
