@@ -1,33 +1,53 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { loadConfig, saveConfig, exportConfig } from '@/lib/ado/storage';
-import type { AdoConfig} from '@/lib/ado/schema/config.schema';
-import type { AdoInstance } from '@/lib/ado/schema/instance.schema';
-import { Plus, Trash2, Save, ArrowLeft, Eye, EyeOff, Download } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { loadConfig, saveConfig, exportConfig } from "@/lib/ado/storage";
+import type { AdoConfig } from "@/lib/ado/schema/config.schema";
+import type { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import {
+  Plus,
+  Trash2,
+  Save,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Download,
+} from "lucide-react";
 
-async function fetchAuthenticatedUserId(baseUrl: string, pat: string): Promise<string | null> {
+import { StatusMapping } from "@/lib/schema/statusMapping.schema";
+
+import StatusMapper from "@/components/status-mapper/StatusMapper";
+import StatusMapperItem from "@/components/status-mapper/StatusMapperItem";
+import StatusMapperContent from "@/components/status-mapper/StatusMapperContent";
+import { id } from "zod/v4/locales";
+
+async function fetchAuthenticatedUserId(
+  baseUrl: string,
+  pat: string
+): Promise<string | null> {
   try {
     const url = `${baseUrl}/_apis/connectionData`;
     const response = await fetch(url, {
       headers: {
-        'Authorization': `Basic ${btoa(`:${pat}`)}`,
-        'Content-Type': 'application/json',
+        Authorization: `Basic ${btoa(`:${pat}`)}`,
+        "Content-Type": "application/json",
       },
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch user ID: ${response.status} ${response.statusText}`);
+      console.error(
+        `Failed to fetch user ID: ${response.status} ${response.statusText}`
+      );
       return null;
     }
 
     const data = await response.json();
     return data.authenticatedUser?.id || null;
   } catch (error) {
-    console.error('Error fetching authenticated user ID:', error);
+    console.error("Error fetching authenticated user ID:", error);
     return null;
   }
 }
@@ -37,10 +57,16 @@ export default function AdoSettingsPage() {
     instances: [],
     environments: [],
     pinnedProjects: [],
-    userEmail: '',
+    userEmail: "",
   });
   const [isSaving, setIsSaving] = React.useState(false);
-  const [showTokens, setShowTokens] = React.useState<{ [key: string]: boolean }>({});
+  const [showTokens, setShowTokens] = React.useState<{
+    [key: string]: boolean;
+  }>({});
+
+  const handleStatusMappingsChange = (instance: AdoInstance,mappings: StatusMapping[]) => {
+    updateInstance(instance.id, { statusMappings: mappings });
+  };
 
   React.useEffect(() => {
     const savedConfig = loadConfig();
@@ -51,42 +77,46 @@ export default function AdoSettingsPage() {
 
   const handleSaveConfig = async () => {
     setIsSaving(true);
-    
+
     try {
       // Fetch userId for instances where it's empty
       const updatedInstances = await Promise.all(
         config.instances.map(async (instance) => {
           if (instance.personalAccessToken) {
             const userId = await fetchAuthenticatedUserId(
-              instance.baseUrl || `https://dev.azure.com/${instance.organization}`,
+              instance.baseUrl ||
+                `https://dev.azure.com/${instance.organization}`,
               instance.personalAccessToken
             );
-            
+
             if (userId) {
-              console.log(`Fetched userId for instance ${instance.name}: ${userId}`);
+              console.log(
+                `Fetched userId for instance ${instance.name}: ${userId}`
+              );
               return { ...instance, userId };
-            }
-            else {
-              console.warn(`Could not fetch userId for instance ${instance.name}`);
+            } else {
+              console.warn(
+                `Could not fetch userId for instance ${instance.name}`
+              );
             }
           }
           return instance;
         })
       );
-      
+
       const updatedConfig = {
         ...config,
         instances: updatedInstances,
       };
-      
+
       const success = saveConfig(updatedConfig);
-      
+
       if (success) {
         setConfig(updatedConfig);
-        console.log('Configuration saved successfully');
+        console.log("Configuration saved successfully");
       }
     } catch (error) {
-      console.error('Error saving configuration:', error);
+      console.error("Error saving configuration:", error);
     } finally {
       setIsSaving(false);
     }
@@ -99,12 +129,12 @@ export default function AdoSettingsPage() {
   const addInstance = () => {
     const newInstance: AdoInstance = {
       id: `instance-${Date.now()}`,
-      name: '',
-      organization: '',
-      baseUrl: '',
-      personalAccessToken: '',
+      name: "",
+      organization: "",
+      baseUrl: "",
+      personalAccessToken: "",
       enabled: true,
-      userId: '',
+      userId: "",
     };
 
     setConfig({
@@ -159,8 +189,10 @@ export default function AdoSettingsPage() {
             <label className="block text-sm font-medium mb-2">User Email</label>
             <Input
               type="email"
-              value={config.userEmail || ''}
-              onChange={(e) => setConfig({ ...config, userEmail: e.target.value })}
+              value={config.userEmail || ""}
+              onChange={(e) =>
+                setConfig({ ...config, userEmail: e.target.value })
+              }
               placeholder="your.email@company.com"
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -169,15 +201,17 @@ export default function AdoSettingsPage() {
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Pinned Project IDs</label>
+            <label className="block text-sm font-medium mb-2">
+              Pinned Project IDs
+            </label>
             <Input
               type="text"
-              value={config.pinnedProjects?.join(', ') || ''}
+              value={config.pinnedProjects?.join(", ") || ""}
               onChange={(e) =>
                 setConfig({
                   ...config,
                   pinnedProjects: e.target.value
-                    .split(',')
+                    .split(",")
                     .map((s) => s.trim())
                     .filter(Boolean),
                 })
@@ -203,7 +237,9 @@ export default function AdoSettingsPage() {
             <Card className="p-8">
               <div className="text-center text-muted-foreground">
                 <p>No instances configured</p>
-                <p className="text-sm mt-1">Click "Add Instance" to get started</p>
+                <p className="text-sm mt-1">
+                  Click "Add Instance" to get started
+                </p>
               </div>
             </Card>
           ) : (
@@ -216,12 +252,14 @@ export default function AdoSettingsPage() {
                         type="checkbox"
                         checked={instance.enabled}
                         onChange={(e) =>
-                          updateInstance(instance.id, { enabled: e.target.checked })
+                          updateInstance(instance.id, {
+                            enabled: e.target.checked,
+                          })
                         }
                         className="h-4 w-4"
                       />
                       <span className="text-sm font-medium">
-                        {instance.name || 'New Instance'}
+                        {instance.name || "New Instance"}
                       </span>
                     </div>
                     <Button
@@ -235,7 +273,9 @@ export default function AdoSettingsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Name</label>
+                      <label className="block text-sm font-medium mb-1">
+                        Name
+                      </label>
                       <Input
                         type="text"
                         value={instance.name}
@@ -254,7 +294,9 @@ export default function AdoSettingsPage() {
                         type="text"
                         value={instance.organization}
                         onChange={(e) =>
-                          updateInstance(instance.id, { organization: e.target.value })
+                          updateInstance(instance.id, {
+                            organization: e.target.value,
+                          })
                         }
                         placeholder="your-org"
                       />
@@ -268,12 +310,15 @@ export default function AdoSettingsPage() {
                         type="text"
                         value={instance.baseUrl}
                         onChange={(e) =>
-                          updateInstance(instance.id, { baseUrl: e.target.value })
+                          updateInstance(instance.id, {
+                            baseUrl: e.target.value,
+                          })
                         }
                         placeholder="https://dev.azure.com/your-org"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Leave empty to use default: https://dev.azure.com/[organization]
+                        Leave empty to use default:
+                        https://dev.azure.com/[organization]
                       </p>
                     </div>
 
@@ -283,7 +328,7 @@ export default function AdoSettingsPage() {
                       </label>
                       <div className="relative">
                         <Input
-                          type={showTokens[instance.id] ? 'text' : 'password'}
+                          type={showTokens[instance.id] ? "text" : "password"}
                           value={instance.personalAccessToken}
                           onChange={(e) =>
                             updateInstance(instance.id, {
@@ -306,9 +351,56 @@ export default function AdoSettingsPage() {
                         </button>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Requires Code (Read), Work Items (Read), Build (Read) scopes
+                        Requires Code (Read), Work Items (Read), Build (Read)
+                        scopes
                       </p>
                     </div>
+
+                    <StatusMapper>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Customize how Azure DevOps statuses map to inbox item
+                        statuses.
+                      </p>
+                      <StatusMapperContent
+                        addMapping={() => {
+                          const newMapping: StatusMapping = {
+                            type: "workItem",
+                            status: "",
+                            color: "#ffffff",
+                          };
+                          const newMappings = [
+                            ...(instance.statusMappings || []),
+                            newMapping,
+                          ];
+                          handleStatusMappingsChange(instance, newMappings);
+                        }}
+                      >
+                        {instance.statusMappings &&
+                          instance.statusMappings.map((mapping, index) => (
+                            <StatusMapperItem
+                              key={`mapping-${index}`}
+                              index={index}
+                              mapping={mapping}
+                              onDelete={(index) => {
+                                if (!instance.statusMappings) return;
+                                const newMappings = [
+                                  ...instance.statusMappings,
+                                ];
+                                newMappings.splice(index, 1);
+                                handleStatusMappingsChange(instance, newMappings);
+                              }}
+                              onChange={(mapping) => {
+                                if (!instance.statusMappings) return;
+                                const newMappings = [
+                                  ...instance.statusMappings,
+                                ];
+                                newMappings[index] = mapping;
+                                handleStatusMappingsChange(instance, newMappings);
+                              }}
+                            />
+                          ))}
+                      </StatusMapperContent>
+                    </StatusMapper>
                   </div>
                 </Card>
               ))}
@@ -326,7 +418,7 @@ export default function AdoSettingsPage() {
           </Button>
           <Button onClick={handleSaveConfig} disabled={isSaving}>
             <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save Configuration'}
+            {isSaving ? "Saving..." : "Save Configuration"}
           </Button>
         </div>
       </div>
