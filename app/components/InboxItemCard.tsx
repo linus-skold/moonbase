@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import type { InboxItem } from '@/lib/schema/inbox.schema';
 import { GitPullRequest, CheckSquare, Activity, ListTodo } from 'lucide-react';
+import { useInstance } from '@/components/inbox/InstanceContext';
 const { DateTime } = require('luxon');
 
 interface InboxItemCardProps {
@@ -21,7 +22,23 @@ const getItemIcon = (type: InboxItem['type']) => {
   }
 };
 
-const getStatusColor = (type: InboxItem['type'], status: string) => {
+const getStatusColor = (
+  type: InboxItem['type'], 
+  status: string, 
+  statusMappings?: Array<{type: string, status: string, color: string}>
+) => {
+  // First check custom status mappings from instance
+  if (statusMappings) {
+    const mapping = statusMappings.find(
+      m => m.type === type && m.status.toLowerCase() === status.toLowerCase()
+    );
+    if (mapping && mapping.color && mapping.color.length > 0) {
+      return mapping.color;
+    }
+  }
+
+  console.log('No custom mapping found for', type, status);
+  // Fallback to default mappings
   if (type === 'pullRequest') {
     if (status === 'active') return 'bg-green-500';
     if (status === 'completed') return 'bg-blue-500';
@@ -35,7 +52,7 @@ const getStatusColor = (type: InboxItem['type'], status: string) => {
     if (status === 'canceled') return 'bg-gray-500';
   }
 
-  return 'bg-blue-500';
+  return 'bg-gray-500';
 };
 
 const getPriorityColor = (priority?: InboxItem['priority']) => {
@@ -53,7 +70,10 @@ const getPriorityColor = (priority?: InboxItem['priority']) => {
   }
 };
 
+
+// get the current instance of the inbox item and render a card for it
 export function InboxItemCard({ item }: InboxItemCardProps) {
+  const instance = useInstance();
   const [imageError, setImageError] = React.useState(false);
 
   const getInitials = (name: string) => {
@@ -82,19 +102,11 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-medium text-sm truncate flex-1">{item.title}</h3>
               <div
-                className={`h-2 w-2 rounded-full flex-shrink-0 ${getStatusColor(
-                  item.type,
-                  item.status
-                )}`}
+                className={`h-2 w-2 rounded-full flex-shrink-0 `}
+                style={{ backgroundColor: getStatusColor(item.type, item.status, instance?.statusMappings) }}
                 title={item.status}
               />
             </div>
-
-            {/* {item.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                {item.description}
-              </p>
-            )} */}
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>{DateTime.fromISO(item.updatedDate).toRelative()}</span>
