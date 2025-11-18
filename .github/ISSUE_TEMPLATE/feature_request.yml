@@ -9,6 +9,7 @@ body:
       label: Platform
       description: Which platform is this feature for?
       options:
+        - All
         - Azure Devops
         - Github
         - Gitlabs

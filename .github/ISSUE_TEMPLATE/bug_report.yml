@@ -7,8 +7,9 @@ body:
     id: platform
     attributes:
       label: Platform
-      description: Which platform is this feature for?
+      description: Which platform is this bug for?
       options:
+        - All
         - Azure Devops
         - Github
         - Gitlabs
