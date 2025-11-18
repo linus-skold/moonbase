@@ -1,7 +1,9 @@
-import { Calendar, Home, Inbox, Search, Settings, Layers } from "lucide-react"
-
+import { Calendar, Home, Inbox, Search, Settings, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
+  SidebarHeader,
+  SidebarFooter,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -9,7 +11,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { VscGithub } from "react-icons/vsc";
 
 // Menu items.
 const items = [
@@ -28,7 +31,7 @@ const items = [
     url: "#",
     icon: Search,
   },
-]
+];
 
 const integrations = [
   {
@@ -36,7 +39,7 @@ const integrations = [
     url: "/integrations/ado",
     icon: Layers,
   },
-]
+];
 
 const settings = [
   {
@@ -44,11 +47,27 @@ const settings = [
     url: "/integrations/ado/settings",
     icon: Settings,
   },
-]
+];
 
 export function AppSidebar() {
   return (
     <Sidebar>
+      <SidebarHeader>
+        <div className="w-full bg-red-900 text-white text-center text-sm py-2 px-2">
+          <p>
+            Moonbase is currently under development. Please report any issues on{" "}
+            <a
+              href="https://github.com/linus-skold/moonbase/issues"
+              className="underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
+            .
+          </p>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -67,7 +86,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
+
         <SidebarGroup>
           <SidebarGroupLabel>Integrations</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -104,6 +123,13 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <div className="w-full flex justify-end">
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <VscGithub />
+          </Button>
+        </div>
+      </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

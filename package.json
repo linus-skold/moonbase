@@ -1,5 +1,5 @@
 {
-  "name": "subtle",
+  "name": "moonbase",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -33,6 +33,7 @@
     "react-dom": "19.2.0",
     "react-icons": "^5.5.0",
     "simple-icons": "^15.21.0",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.1.12"
   },
