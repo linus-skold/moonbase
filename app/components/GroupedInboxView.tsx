@@ -1,8 +1,10 @@
-import React from 'react';
 import { Card } from '@/components/ui/card';
 import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
-import { InboxItemCard } from './InboxItemCard';
 import { ChevronDown, ChevronRight, Folder } from 'lucide-react';
+import { VscAzureDevops } from "react-icons/vsc";
+import React from 'react';
+import { InboxItemCard } from './InboxItemCard';
+import { InstanceProvider } from '@/components/inbox/InstanceContext';
 
 interface GroupedInboxViewProps {
   groupedItems: GroupedInboxItems;
@@ -59,7 +61,8 @@ export function GroupedInboxView({ groupedItems }: GroupedInboxViewProps) {
               ) : (
                 <ChevronRight className="h-4 w-4 flex-shrink-0" />
               )}
-              <Folder className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+              {/* <Folder className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> */}
+              <VscAzureDevops className="h-4 w-4 flex-shrink-0 text-azure-blue" />
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold truncate">{group.project.name}</h2>
                 <p className="text-xs text-muted-foreground">{group.instance.name}</p>
@@ -72,9 +75,11 @@ export function GroupedInboxView({ groupedItems }: GroupedInboxViewProps) {
             {isExpanded && (
               <div className="border-t">
                 <div className="p-4 space-y-2">
-                  {group.items.map((item) => (
-                    <InboxItemCard key={item.id} item={item} />
-                  ))}
+                  <InstanceProvider instance={group.instance}>
+                    {group.items.map((item) => (
+                      <InboxItemCard key={item.id} item={item} />
+                    ))}
+                  </InstanceProvider>
                 </div>
               </div>
             )}
