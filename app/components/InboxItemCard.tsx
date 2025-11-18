@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import type { InboxItem } from '@/lib/schema/inbox.schema';
-import { GitPullRequest, CheckSquare, Activity, ListTodo } from 'lucide-react';
+import { GitPullRequest, CheckSquare, Activity, ListTodo, ExternalLink } from 'lucide-react';
 import { useInstance } from '@/components/inbox/InstanceContext';
 const { DateTime } = require('luxon');
 
@@ -100,7 +100,9 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium text-sm truncate flex-1">{item.title}</h3>
+              <h3 className="font-medium text-sm truncate flex-1">{item.title}
+                <ExternalLink className="inline-block ml-1 h-3 w-3 text-muted-foreground align-text-top" />
+              </h3>
               <div
                 className={`h-2 w-2 rounded-full flex-shrink-0 `}
                 style={{ backgroundColor: getStatusColor(item.type, item.status, instance?.statusMappings) }}
