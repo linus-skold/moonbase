@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AdoInstance } from '../ado/schema/instance.schema';
 
 
 export const InboxItemTypeSchema = z.enum(['pullRequest', 'workItem', 'pipeline', 'task']);
@@ -21,10 +22,7 @@ export const InboxItemSchema = z.object({
     id: z.string(),
     name: z.string(),
   }).optional(),
-  instance: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  instance: AdoInstance,
   metadata: z.record(z.string(), z.any()).optional(),
   priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   assignedTo: z.object({
@@ -41,10 +39,7 @@ export const GroupedInboxItemsSchema = z.record(
       id: z.string(),
       name: z.string(),
     }),
-    instance: z.object({
-      id: z.string(),
-      name: z.string(),
-    }),
+    instance: AdoInstance,
     items: z.array(InboxItemSchema),
     repositories: z.record(
       z.string(),
