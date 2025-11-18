@@ -1,8 +1,27 @@
 name: 🐛 Bug Report
 description: Sample description for a bug report
-title: "<title>"
+title: "Bug:"
 labels: [issue:bug, issue:needs-triage]
 body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which platform is this feature for?
+      options:
+        - Azure Devops
+        - Github
+        - Gitlabs
+        - Bitbucket
+        - Gitea
+    validations:
+      required: true
+    label:
+      Azure Devops: "platform:Azure Devops"
+      Github: "platform:Github"
+      Gitlabs: "platform:Gitlabs"
+      Bitbucket: "platform:Bitbucket"
+      Gitea: "platform:Gitea"
   - type: textarea
     id: description
     attributes:

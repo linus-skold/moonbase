@@ -1,8 +1,28 @@
 name: 💡 Feature Request
 description: Create a feature request to help us improve
-title: "<title>"
+title: "Feature:"
 labels: [issue:enhancement, issue:needs-triage]
 body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which platform is this feature for?
+      options:
+        - Azure Devops
+        - Github
+        - Gitlabs
+        - Bitbucket
+        - Gitea
+    validations:
+      required: true
+    label:
+      Azure Devops: "platform:Azure Devops"
+      Github: "platform:Github"
+      Gitlabs: "platform:Gitlabs"
+      Bitbucket: "platform:Bitbucket"
+      Gitea: "platform:Gitea"
+      
   - type: textarea
     id: description
     attributes:
@@ -16,12 +36,12 @@ body:
       label: Basic example
       description: How would we use this feature?
     validations:
-      required: true
+      required: false
   - type: textarea
     id: drawbacks
     attributes:
       label: Drawbacks
       description: Does this feature have any drawbacks or does it require us to change an existing feature?
     validations:
-      required: true
+      required: false
  
