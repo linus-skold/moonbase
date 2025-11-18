@@ -1,0 +1,35 @@
+name: Apply Platform Label
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply platform label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body;
+
+            const platformMap = {
+              "Azure Devops": "platform:Azure Devops",
+              "Github": "platform:Github",
+              "Gitlabs": "platform:Gitlabs",
+              "Bitbucket": "platform:Bitbucket",
+              "Gitea": "platform:Gitea"
+            };
+
+            const match = body.match(/### Platform\s*\n(.+)/);
+            if (match) {
+                const selected = match[1].trim();
+                const label = platformMap[selected];
+                if (label) {
+                  await github.rest.issues.addLabels({
+                    ...context.repo,
+                    issue_number: context.issue.number,
+                    labels: [label]
+                  });
+                }
+            }
