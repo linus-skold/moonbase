@@ -16,12 +16,6 @@ body:
         - Gitea
     validations:
       required: true
-    label:
-      Azure Devops: "platform:Azure Devops"
-      Github: "platform:Github"
-      Gitlabs: "platform:Gitlabs"
-      Bitbucket: "platform:Bitbucket"
-      Gitea: "platform:Gitea"
       
   - type: textarea
     id: description
