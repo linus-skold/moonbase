@@ -43,10 +43,7 @@ export class AdoService {
         id: pr.repository.id,
         name: pr.repository.name,
       },
-      instance: {
-        id: instance.id,
-        name: instance.name,
-      },
+      instance: instance,
       metadata: {
         sourceRefName: pr.sourceRefName,
         targetRefName: pr.targetRefName,
@@ -64,12 +61,12 @@ export class AdoService {
   ): InboxItem {
     const priority = this.getWorkItemPriority(workItem);
     
-    // Construct URL from base URL and work item ID
-    // Format: https://dev.azure.com/{org}/{project}/_workitems/edit/{id}
     const baseUrl = instance.baseUrl || `https://dev.azure.com/${instance.organization}`;
     const workItemUrl = workItem._links?.html?.href || 
       `${baseUrl}/${projectName}/_workitems/edit/${workItem.id}`;
 
+
+      // TODO: Refactor to be parsed properly using zod schema transform
     return {
       id: `wi-${instance.id}-${workItem.id}`,
       type: 'workItem',
@@ -83,10 +80,7 @@ export class AdoService {
         id: workItem.id.toString(),
         name: projectName,
       },
-      instance: {
-        id: instance.id,
-        name: instance.name,
-      },
+      instance: instance,
       priority,
       assignedTo: workItem.fields['System.AssignedTo'],
       metadata: {
@@ -119,10 +113,7 @@ export class AdoService {
         id: projectId,
         name: projectName,
       },
-      instance: {
-        id: instance.id,
-        name: instance.name,
-      },
+      instance: instance,
       priority,
       metadata: {
         state: run.state,
@@ -209,8 +200,10 @@ export class AdoService {
 
   groupInboxItems(items: InboxItem[]): GroupedInboxItems {
     const grouped: GroupedInboxItems = {};
+
     for (const item of items) {
       const projectKey = `${item.project.name}`;
+
       if (!grouped[projectKey]) {
         grouped[projectKey] = {
           project: item.project,
@@ -218,6 +211,7 @@ export class AdoService {
           items: [],
         };
       }
+
       grouped[projectKey].items.push(item);
     }
     return grouped;
