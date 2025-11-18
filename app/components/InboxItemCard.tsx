@@ -40,19 +40,19 @@ const getStatusColor = (
   console.log('No custom mapping found for', type, status);
   // Fallback to default mappings
   if (type === 'pullRequest') {
-    if (status === 'active') return 'bg-green-500';
-    if (status === 'completed') return 'bg-blue-500';
-    if (status === 'abandoned') return 'bg-gray-500';
+    if (status === 'active') return '#22c55e';
+    if (status === 'completed') return '#3b82f6';
+    if (status === 'abandoned') return '#6b7280';
   }
 
   if (type === 'pipeline') {
-    if (status === 'succeeded') return 'bg-green-500';
-    if (status === 'failed') return 'bg-red-500';
-    if (status === 'inProgress') return 'bg-yellow-500';
-    if (status === 'canceled') return 'bg-gray-500';
+    if (status === 'succeeded') return '#22c55e';
+    if (status === 'failed') return '#ef4444';
+    if (status === 'inProgress') return '#eab308';
+    if (status === 'canceled') return '#6b7280';
   }
 
-  return 'bg-gray-500';
+  return '#6b7280';
 };
 
 const getPriorityColor = (priority?: InboxItem['priority']) => {
