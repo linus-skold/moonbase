@@ -76,8 +76,13 @@ export class AdoClient {
       query: `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.CreatedDate], [System.ChangedDate]
               FROM WorkItems
               WHERE [System.AssignedTo] = @Me
-              AND ([System.State] = 'Active' OR [System.State] = 'New' OR [System.State] = 'In Progress' OR [System.State] = 'Blocked')
-              ORDER BY [System.ChangedDate] DESC`,
+              AND ([System.State] = 'Active' 
+                OR [System.State] = 'New' 
+                OR [System.State] = 'In Progress' 
+                OR [System.State] = 'Blocked'
+                OR [System.State] = 'To Do'
+                OR [System.State] = 'Doing'
+              ) ORDER BY [System.ChangedDate] DESC`,
     };
 
     const wiqlUrl = projectId
