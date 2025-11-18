@@ -5,6 +5,7 @@ import { VscAzureDevops } from "react-icons/vsc";
 import React from 'react';
 import { InboxItemCard } from './InboxItemCard';
 import { InstanceProvider } from '@/components/inbox/InstanceContext';
+import { Button } from '@/components/ui/button';
 
 interface GroupedInboxViewProps {
   groupedItems: GroupedInboxItems;
@@ -54,13 +55,15 @@ export function GroupedInboxView({ groupedItems }: GroupedInboxViewProps) {
           <Card key={projectKey} className="overflow-hidden">
             <button
               onClick={() => toggleProject(projectKey)}
-              className="w-full px-4 flex items-center gap-2 transition-colors text-left"
+              className="w-full px-4 flex items-center gap-2 transition-colors text-left group"
             >
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4 flex-shrink-0 " />
-              ) : (
-                <ChevronRight className="h-4 w-4 flex-shrink-0" />
-              )}
+              <div className="p-2 -m-2 rounded-full transition-colors group-hover:bg-accent">
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                )}
+              </div>
               {/* <Folder className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> */}
               <VscAzureDevops className="h-4 w-4 flex-shrink-0 text-azure-blue" />
               <div className="flex-1 min-w-0">
