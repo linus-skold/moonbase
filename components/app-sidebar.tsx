@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import { CustomSidebar } from "@/components/sidebar/custom-sidebar";
 import { VscGithub } from "react-icons/vsc";
@@ -21,14 +22,9 @@ const items = [
     icon: Home,
   },
   {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
+    title: "Settings",
+    url: "/integrations/ado/settings",
+    icon: Settings,
   },
 ];
 
@@ -40,20 +36,17 @@ const integrations = [
   },
 ];
 
-const settings = [
-  {
-    title: "ADO Settings",
-    url: "/integrations/ado/settings",
-    icon: Settings,
-  },
-];
+interface AppSidebarProps {
+  integrations?: any[];
 
-export function AppSidebar() {
+};
+
+export function AppSidebar(props?: AppSidebarProps) {
   return (
     <CustomSidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Moonbase</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -71,7 +64,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Integrations</SidebarGroupLabel>
+          <SidebarGroupLabel>My Inboxes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {integrations.map((item) => (
@@ -82,24 +75,7 @@ export function AppSidebar() {
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settings.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
+                  <SidebarMenuBadge>New</SidebarMenuBadge>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
