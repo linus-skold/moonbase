@@ -1,8 +1,6 @@
 import { Calendar, Home, Inbox, Search, Settings, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Sidebar,
-  SidebarHeader,
   SidebarFooter,
   SidebarContent,
   SidebarGroup,
@@ -12,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { CustomSidebar } from "@/components/sidebar/custom-sidebar";
 import { VscGithub } from "react-icons/vsc";
 
 // Menu items.
@@ -51,23 +50,7 @@ const settings = [
 
 export function AppSidebar() {
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <div className="w-full bg-red-900 text-white text-center text-sm py-2 px-2">
-          <p>
-            Moonbase is currently under development. Please report any issues on{" "}
-            <a
-              href="https://github.com/linus-skold/moonbase/issues"
-              className="underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub
-            </a>
-            .
-          </p>
-        </div>
-      </SidebarHeader>
+    <CustomSidebar>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -130,6 +113,6 @@ export function AppSidebar() {
           </Button>
         </div>
       </SidebarFooter>
-    </Sidebar>
+    </CustomSidebar>
   );
 }
