@@ -5,6 +5,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { VersionBanner } from "@/components/VersionBanner";
+import SystemNotificationBanner from "@/components/banner/banner";
+import { BannerContainer } from "@/components/banner/BannerContainer";
+import { BannerAction, BannerTitle } from "@/components/ui/shadcn-io/banner";
+import { AlertCircle } from "lucide-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,14 +41,37 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider>
-            <AppSidebar />
-            <main className="min-h-screen w-full">
+          <div className="flex flex-col min-h-screen">
+            <BannerContainer>
+              <SystemNotificationBanner variant="github" canClose={false}>
+                <BannerTitle className="text-center">
+                    <span className="font-bold">Moonbase </span> is currently under <span className="font-bold">development</span>. Please report any
+                    issues on{" "}
+                    <a
+                      href="https://github.com/linus-skold/moonbase/issues"
+                      className="underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      GitHub
+                    </a>
+                    .
+                </BannerTitle>
+              </SystemNotificationBanner>
               <VersionBanner />
-              <SidebarTrigger />
-              {children}
-            </main>
-          </SidebarProvider>
+            </BannerContainer>
+
+            <div className="flex flex-1">
+              <SidebarProvider>
+                <AppSidebar />
+
+                <main className="flex-1">
+                  <SidebarTrigger />
+                  {children}
+                </main>
+              </SidebarProvider>
+            </div>
+          </div>
         </ThemeProvider>
       </body>
     </html>

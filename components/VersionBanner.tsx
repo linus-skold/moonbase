@@ -1,18 +1,22 @@
 import { checkVersion } from "@/lib/version-check";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import SystemNotificationBanner from "./banner/banner";
 
 export async function VersionBanner() {
   const versionStatus = await checkVersion();
 
-  if (versionStatus.error || versionStatus.isUpToDate || versionStatus.isAhead) {
+  if (
+    versionStatus.error ||
+    versionStatus.isUpToDate ||
+    versionStatus.isAhead
+  ) {
     // Don't show banner if there's an error, if up to date, or if local is ahead
     return null;
   }
 
   return (
-    <div className="w-full bg-amber-900/20 border-b border-amber-900/50 text-amber-100 text-center text-sm py-2">
+    <SystemNotificationBanner variant="important">
       <div className="flex items-center justify-center gap-2">
-        <AlertCircle className="h-4 w-4" />
         <p>
           New version available on GitHub ({versionStatus.remoteHash}) • Your
           version: {versionStatus.localHash} •{" "}
@@ -26,6 +30,6 @@ export async function VersionBanner() {
           </a>
         </p>
       </div>
-    </div>
+    </SystemNotificationBanner>
   );
 }
