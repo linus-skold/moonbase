@@ -75,7 +75,6 @@ export function AppSidebar(props?: AppSidebarProps) {
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
-                  <SidebarMenuBadge>New</SidebarMenuBadge>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
