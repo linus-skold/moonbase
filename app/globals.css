@@ -42,6 +42,12 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --color-azure-blue: var(--azure-blue);
+  --color-banner-important: var(--banner-important);
+  --color-banner-important-foreground: var(--banner-important-foreground);
+  --color-banner-important-border: var(--banner-important-border);
+  --color-banner-notification: var(--banner-notification);
+  --color-banner-notification-foreground: var(--banner-notification-foreground);
+  --color-banner-notification-border: var(--banner-notification-border);
 }
 
 :root {
@@ -78,6 +84,12 @@
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
   --azure-blue: oklch(0.568 0.167 251.313);
+  --banner-important: rgb(32, 4, 5);       /* Deep red */
+  --banner-important-foreground: oklch(0.35 0.08 30);
+  --banner-important-border: oklch(0.85 0.04 30 / 0.6);
+  --banner-notification: rgb(4, 12, 38);    /* Deep blue */
+  --banner-notification-foreground: oklch(0.3 0.08 260);
+  --banner-notification-border: oklch(0.85 0.04 260 / 0.6);
 }
 
 .dark {
@@ -113,6 +125,12 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --azure-blue: oklch(0.568 0.167 251.313);
+  --banner-important: rgb(32, 4, 5);       /* Deep red */
+  --banner-important-foreground: oklch(0.9 0.04 30);
+  --banner-important-border: oklch(0.35 0.15 30 / 0.6);
+  --banner-notification: rgb(4, 12, 38);    /* Deep blue */
+  --banner-notification-foreground: oklch(0.9 0.04 260);
+  --banner-notification-border: oklch(0.35 0.15 260 / 0.6);
 }
 
 @layer base {
