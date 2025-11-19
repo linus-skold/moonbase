@@ -33,11 +33,15 @@ export const AdoPullRequestSchema = z.object({
   // Extract PR ID from the API URL
   const prId = data.url.split("/").pop();
 
+  const result = /^(https?:\/\/)([^\/]+)(\/?)/.exec(data.url);
+  const baseUrl = result ? result[0] : "https://dev.azure.com/";
+
   // Extract org name from the URL
-  const org = data.url.split("/")[3];
+  const org = data.url.split("/")[3]; // could probably use the regex to get this one too
+
   // Build UI URL
   const uiUrl =
-    `https://dev.azure.com/${org}/${data.repository.project.name}/` +
+    `${baseUrl}${org}/${data.repository.project.name}/` +
     `_git/${data.repository.name}/pullrequest/${prId}`;
 
   return {
