@@ -37,7 +37,6 @@ const getStatusColor = (
     }
   }
 
-  console.log('No custom mapping found for', type, status);
   // Fallback to default mappings
   if (type === 'pullRequest') {
     if (status === 'active') return '#22c55e';
