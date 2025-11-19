@@ -4,8 +4,8 @@ import { AlertCircle, CheckCircle } from "lucide-react";
 export async function VersionBanner() {
   const versionStatus = await checkVersion();
 
-  if (versionStatus.error || versionStatus.isUpToDate) {
-    // Don't show banner if there's an error or if up to date
+  if (versionStatus.error || versionStatus.isUpToDate || versionStatus.isAhead) {
+    // Don't show banner if there's an error, if up to date, or if local is ahead
     return null;
   }
 

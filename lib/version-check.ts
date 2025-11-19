@@ -10,6 +10,7 @@ export type VersionStatus = {
   localHash: string;
   remoteHash: string;
   branch: string;
+  isAhead: boolean;
   error?: string;
 };
 
@@ -32,11 +33,29 @@ export async function checkVersion(): Promise<VersionStatus> {
     );
     const remote = remoteHash.trim();
 
+    // Check if local is ahead of remote
+    let isAhead = false;
+    if (local !== remote) {
+      try {
+        // Get the merge base (common ancestor)
+        const { stdout: mergeBase } = await execAsync(
+          `git merge-base ${local} ${remote}`
+        );
+        const base = mergeBase.trim();
+        // If the merge base equals the remote hash, local is ahead
+        isAhead = base === remote;
+      } catch (error) {
+        // If merge-base fails, assume not ahead
+        isAhead = false;
+      }
+    }
+
     return {
       isUpToDate: local === remote,
       localHash: local.substring(0, 7),
       remoteHash: remote.substring(0, 7),
       branch: currentBranch,
+      isAhead,
     };
   } catch (error) {
     console.error("Failed to check version:", error);
@@ -45,6 +64,7 @@ export async function checkVersion(): Promise<VersionStatus> {
       localHash: "unknown",
       remoteHash: "unknown",
       branch: "unknown",
+      isAhead: false,
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
