@@ -4,6 +4,7 @@ import React from 'react';
 import { InboxLayout } from '@/components/inbox/InboxLayout';
 import { InboxProvider } from '@/components/inbox/InboxProvider';
 import { createAdoDataSource } from '@/lib/ado/data-source';
+import { loadConfig } from '@/lib/ado/storage';
 import { Settings } from 'lucide-react';
 
 
@@ -14,16 +15,27 @@ interface PageProps {
 }
 
 export default function Page({ params }: PageProps) {
-  const adoDataSource = React.useMemo(() => createAdoDataSource(), []);
-
   const { slug } = React.use(params);
+  
+  const adoDataSource = React.useMemo(() => createAdoDataSource(slug), [slug]);
+  
+  // Get instance name from config
+  const [instanceName, setInstanceName] = React.useState<string | null>(null);
+  
 
+
+  React.useEffect(() => {
+    const config = loadConfig();
+    const instance = config?.instances?.find(inst => inst.id === slug);
+    setInstanceName(instance?.name || null);
+  }, [slug]);
+  
   return (
     <InboxProvider dataSources={[adoDataSource]}>
       {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl }) => (
         
         <InboxLayout
-          title={`${slug} Inbox`}
+          title={instanceName ? `${instanceName} Inbox` : 'Inbox'}
           groupedItems={groupedItems}
           isLoading={isLoading}
           error={error}
