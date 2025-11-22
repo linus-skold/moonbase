@@ -7,6 +7,7 @@ import { AdoInstance } from '@/lib/ado/schema/instance.schema';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -170,6 +171,18 @@ export default function Page() {
           <CardDescription>Edit instance details directly</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <input
+              type="checkbox"
+              id="enabled-toggle"
+              checked={instance.enabled}
+              onChange={(e) => updateInstance({ enabled: e.target.checked })}
+              className="w-4 h-4 text-primary bg-background border-gray-300 rounded focus:ring-primary focus:ring-2 cursor-pointer"
+            />
+            <Label htmlFor="enabled-toggle" className="cursor-pointer">
+              Enable this integration instance
+            </Label>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Name</label>
