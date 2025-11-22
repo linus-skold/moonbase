@@ -23,16 +23,8 @@ const items = [
   },
   {
     title: "Settings",
-    url: "/integrations/ado/settings",
+    url: "/settings",
     icon: Settings,
-  },
-];
-
-const integrations = [
-  {
-    title: "Azure DevOps",
-    url: "/integrations/ado",
-    icon: Layers,
   },
 ];
 
@@ -63,7 +55,7 @@ export function AppSidebar(props?: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
+        {/* <SidebarGroup>
           <SidebarGroupLabel>My Inboxes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -79,7 +71,7 @@ export function AppSidebar(props?: AppSidebarProps) {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup> */}
       </SidebarContent>
       <SidebarFooter>
         <div className="w-full flex justify-end">

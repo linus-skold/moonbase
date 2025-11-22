@@ -34,7 +34,7 @@ export default function Home() {
                   title: 'No Integrations Configured',
                   description: 'Configure your integrations to start seeing items in your inbox',
                   actionLabel: 'Configure Integrations',
-                  actionUrl: configUrl || '/integrations/ado/settings',
+                  actionUrl: configUrl || '/settings',
                 }
               : undefined
           }

@@ -28,7 +28,7 @@ export function createAdoDataSource(): InboxDataSource {
       if (typeof window === 'undefined') {
         return {
           isConfigured: false,
-          configUrl: '/integrations/ado/settings',
+          configUrl: '/settings',
         };
       }
       
@@ -37,7 +37,7 @@ export function createAdoDataSource(): InboxDataSource {
       
       return {
         isConfigured,
-        configUrl: '/integrations/ado/settings',
+        configUrl: '/settings',
       };
     },
   };
