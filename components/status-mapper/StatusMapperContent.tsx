@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { StatusMapping } from "@/lib/schema/statusMapping.schema";
 
-const StatusMapperContent = ({
+export const StatusMapperContent = ({
   children,
   addMapping,
 }: {
@@ -30,4 +30,3 @@ const StatusMapperContent = ({
   );
 };
 
-export default StatusMapperContent;
