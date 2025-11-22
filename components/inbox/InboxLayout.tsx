@@ -3,8 +3,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { GroupedInboxView } from '@/app/components/GroupedInboxView';
+import { Input } from '@/components/ui/input'
+import { GroupedInboxView } from '@/components/GroupedInboxView';
 import {
   InboxFilters,
   sortItems,
@@ -12,7 +12,7 @@ import {
   getItemCounts,
   type SortOption,
   type FilterOption,
-} from '@/app/components/InboxFilters';
+} from '@/components/InboxFilters';
 import type { GroupedInboxItems, InboxItem } from '@/lib/schema/inbox.schema';
 import { RefreshCw, Settings as SettingsIcon, Inbox, Search } from 'lucide-react';
 
@@ -40,7 +40,6 @@ export function InboxLayout({
   isLoading,
   error,
   onRefresh,
-  settingsUrl,
   emptyStateConfig,
 }: InboxLayoutProps) {
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -142,14 +141,7 @@ export function InboxLayout({
                 Refresh
               </Button>
             )}
-            {settingsUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={settingsUrl}>
-                  <SettingsIcon className="h-4 w-4 mr-2" />
-                  Settings
-                </a>
-              </Button>
-            )}
+
           </div>
         </div>
 
