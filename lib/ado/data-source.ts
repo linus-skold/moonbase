@@ -3,7 +3,7 @@ import { loadConfig } from '@/lib/ado/storage';
 import type { InboxDataSource } from '@/components/inbox/InboxProvider';
 import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
 
-export function createAdoDataSource(): InboxDataSource {
+export function createAdoDataSource(instanceId?: string): InboxDataSource {
   return {
     id: 'ado',
     name: 'Azure DevOps',
@@ -19,7 +19,20 @@ export function createAdoDataSource(): InboxDataSource {
         return {};
       }
 
-      const service = new AdoService(config);
+      // Filter for specific instance if instanceId is provided
+      let filteredConfig = config;
+      if (instanceId) {
+        const instance = config.instances.find(inst => inst.id === instanceId);
+        if (!instance) {
+          return {};
+        }
+        filteredConfig = {
+          ...config,
+          instances: [instance]
+        };
+      }
+
+      const service = new AdoService(filteredConfig);
       return await service.fetchAndGroupInboxItems();
     },
 
@@ -33,6 +46,17 @@ export function createAdoDataSource(): InboxDataSource {
       }
       
       const config = loadConfig();
+      
+      // Check if specific instance exists and is configured
+      if (instanceId) {
+        const instance = config?.instances?.find(inst => inst.id === instanceId);
+        const isConfigured = !!(instance);
+        return {
+          isConfigured,
+          configUrl: '/settings',
+        };
+      }
+      
       const isConfigured = !!(config && config.instances.length > 0);
       
       return {
