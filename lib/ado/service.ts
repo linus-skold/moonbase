@@ -149,8 +149,7 @@ export class AdoService {
 
         // Fetch work items assigned to me!
         const workItems = await client.getWorkItemsAssignedToMe(
-          undefined,
-          this.config.userEmail
+          undefined
         );
         for (const wi of workItems) {
           const project = projects.find((p) => 

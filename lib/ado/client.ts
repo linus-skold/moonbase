@@ -6,7 +6,7 @@ import type { AdoInstance } from "./schema/instance.schema";
 
 export class AdoClient {
   private baseUrl: string;
-  private organization: string;
+  private organization?: string;
   private token: string;
   private headers: HeadersInit;
   private userId: string;
@@ -69,7 +69,6 @@ export class AdoClient {
 
   async getWorkItemsAssignedToMe(
     projectId?: string,
-    userEmail?: string
   ): Promise<AdoWorkItem[]> {
     // WIQL query to get work items assigned to current user
     const wiql = {
@@ -119,54 +118,6 @@ export class AdoClient {
     }
 
     return workItems;
-  }
-
-  async getWorkItemsMentioningMe(
-    projectId?: string,
-    userEmail?: string
-  ): Promise<AdoWorkItem[]> {
-    // This is a simplified version - ADO doesn't have a direct "mentions" API
-    // In practice, you might need to search comments or descriptions
-    // For now, we'll get recently updated items in the project
-    const wiql = {
-      query: `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.CreatedDate], [System.ChangedDate]
-              FROM WorkItems
-              WHERE [System.TeamProject] = @Project
-              AND [System.State] <> 'Closed'
-              AND [System.State] <> 'Removed'
-              ORDER BY [System.ChangedDate] DESC`,
-    };
-
-    if (!projectId) {
-      return []; // Need project context for this query
-    }
-
-    const wiqlUrl = `${this.baseUrl}/${projectId}/_apis/wit/wiql?api-version=7.1`;
-
-    const wiqlResponse = await fetch(wiqlUrl, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify(wiql),
-    });
-
-    if (!wiqlResponse.ok) {
-      return [];
-    }
-
-    const wiqlData = await wiqlResponse.json();
-    const workItemIds =
-      wiqlData.workItems?.map((wi: any) => wi.id).slice(0, 50) || [];
-
-    if (workItemIds.length === 0) {
-      return [];
-    }
-
-    const ids = workItemIds.join(",");
-    const url = `${this.baseUrl}/_apis/wit/workitems?ids=${ids}&$expand=links&api-version=7.1`;
-    const data = await this.fetch<{ value: AdoWorkItem[] }>(url);
-
-    // TODO: Filter by mentions in comments/description
-    return data.value;
   }
 
   async getPipelineRuns(
