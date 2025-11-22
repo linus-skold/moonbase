@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import type { InboxItem } from '@/lib/schema/inbox.schema';
 import {
   ArrowDownAZ,
-  ArrowUpAZ,
   Calendar,
   Filter,
 } from 'lucide-react';

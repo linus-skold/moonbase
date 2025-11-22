@@ -1,11 +1,10 @@
 import { Card } from '@/components/ui/card';
 import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
-import { ChevronDown, ChevronRight, Folder } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { VscAzureDevops } from "react-icons/vsc";
 import React from 'react';
 import { InboxItemCard } from './InboxItemCard';
 import { InstanceProvider } from '@/components/inbox/InstanceContext';
-import { Button } from '@/components/ui/button';
 
 interface GroupedInboxViewProps {
   groupedItems: GroupedInboxItems;
