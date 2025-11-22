@@ -43,21 +43,36 @@ interface DatePickerProps {
 }
 
 export function DatePicker(props: DatePickerProps) {
+  // Helper to get a valid default date
+  const getValidDate = (dateValue: Date | undefined): Date => {
+    if (!dateValue) return new Date("2026-06-01");
+    if (!isValidDate(dateValue)) return new Date("2026-06-01");
+    return dateValue;
+  };
+
+  const initialDate = getValidDate(props.value);
+  
   const [open, setOpen] = React.useState(false)
-  const [date, setDate] = React.useState<Date | undefined>(
-    props.value || new Date("2026-06-01")
-  )
-  const [month, setMonth] = React.useState<Date | undefined>(date)
-  const [value, setValue] = React.useState(formatDate(props.value || date))
+  const [date, setDate] = React.useState<Date | undefined>(initialDate)
+  const [month, setMonth] = React.useState<Date | undefined>(initialDate)
+  const [value, setValue] = React.useState(formatDate(initialDate))
 
   // Sync with external value prop
   React.useEffect(() => {
-    if (props.value) {
+    if (props.value && isValidDate(props.value)) {
       setDate(props.value)
       setValue(formatDate(props.value))
       setMonth(props.value)
+    } else if (props.value && !isValidDate(props.value)) {
+      // Handle invalid date from props
+      const fallbackDate = new Date("2026-06-01");
+      setDate(fallbackDate)
+      setValue(formatDate(fallbackDate))
+      setMonth(fallbackDate)
+      // Notify parent of the corrected date
+      props.onChange?.(fallbackDate)
     }
-  }, [props.value])
+  }, [props.value, props.onChange])
 
   return (
     <div className="flex flex-col gap-3">

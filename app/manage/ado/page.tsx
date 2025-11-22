@@ -34,6 +34,22 @@ export default function Page() {
   const [showToken, setShowToken] = React.useState(false);
   const [hasChanges, setHasChanges] = React.useState(false);
 
+  // Helper to safely parse date
+  const safeParseDate = (dateValue: any): Date => {
+    if (!dateValue) return new Date();
+    
+    if (dateValue instanceof Date) {
+      return isNaN(dateValue.getTime()) ? new Date() : dateValue;
+    }
+    
+    try {
+      const parsed = new Date(dateValue);
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    } catch {
+      return new Date();
+    }
+  };
+
   React.useEffect(() => {
     if (!instanceId) {
       router.push('/settings');
@@ -44,10 +60,10 @@ export default function Page() {
     const foundInstance = config?.instances?.find((inst) => inst.id === instanceId);
     
     if (foundInstance) {
-      // Ensure expiresAt is a Date object when loading from storage
+      // Ensure expiresAt is a valid Date object when loading from storage
       setInstance({
         ...foundInstance,
-        expiresAt: foundInstance.expiresAt instanceof Date ? foundInstance.expiresAt : new Date(foundInstance.expiresAt),
+        expiresAt: safeParseDate(foundInstance.expiresAt),
       });
     } else {
       router.push('/settings');
