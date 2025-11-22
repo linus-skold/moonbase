@@ -1,0 +1,149 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { VscAzureDevops } from "react-icons/vsc";
+import { CalendarIcon, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import { loadConfig, saveConfig } from "@/lib/ado/storage";
+import { toast } from "sonner";
+
+
+
+interface ManageCardProps {
+  children?: React.ReactNode;
+  onClick?: () => void;
+  onDelete?: () => void;
+  instance: AdoInstance;
+  addText?: string;
+}
+
+function getDaysUntilExpiration(expiresAt: Date | number | undefined): number | null {
+  if (!expiresAt) return null;
+  const expireDate = new Date(expiresAt);
+  const now = new Date();
+  const diffTime = expireDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+function getExpirationColor(daysRemaining: number | null): string {
+  if (daysRemaining === null) return "text-muted-foreground";
+  if (daysRemaining <= 7) return "text-red-600 font-semibold";
+  if (daysRemaining <= 30) return "text-yellow-600 font-semibold";
+  return "text-muted-foreground";
+}
+
+function formatExpirationText(expiresAt: Date | number | undefined, daysRemaining: number | null): string {
+  if (daysRemaining === null) return "";
+  if (daysRemaining < 0) return "expired";
+  
+  // Less than 2 weeks: show in days
+  if (daysRemaining < 14) {
+    return `in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`;
+  }
+  
+  // More than 2 weeks: show full date
+  const expireDate = new Date(expiresAt!);
+  return `on ${expireDate.toLocaleDateString('en-US', { 
+    month: 'long', 
+    day: 'numeric', 
+    year: 'numeric' 
+  })}`;
+}
+
+
+export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCardProps) => {
+  const daysRemaining = getDaysUntilExpiration(instance.expiresAt);
+  const expirationColor = getExpirationColor(daysRemaining);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const handleDelete = () => {
+    const config = loadConfig();
+    if (!config) {
+      toast.error('Failed to load configuration');
+      return;
+    }
+
+    const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
+    const success = saveConfig({ ...config, instances: updatedInstances });
+    
+    if (success) {
+      toast.success('Instance deleted successfully');
+      setDeleteDialogOpen(false);
+      onDelete?.();
+    } else {
+      toast.error('Failed to delete instance');
+    }
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <VscAzureDevops className="h-5 w-5" />
+              {instance.name}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </CardTitle>
+          <CardDescription>
+            {instance.baseUrl || instance.organization}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {instance.expiresAt && (
+            <div className="flex items-center gap-2 text-sm">
+              <CalendarIcon className="h-4 w-4" />
+              <span className={expirationColor}>
+                PAT expires {formatExpirationText(instance.expiresAt, daysRemaining)}
+              </span>
+            </div>
+          )}
+          <Button className="hover:cursor-pointer" variant="outline" onClick={onClick}>Manage</Button>
+        </CardContent>
+      </Card>
+      {children}
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Instance</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{instance.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
