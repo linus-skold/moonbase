@@ -16,6 +16,7 @@ import { DatePicker } from "@/components/datepicker/DatePicker";
 
 import { loadConfig, saveConfig } from "@/lib/ado/storage";
 import { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { fetchAuthenticatedUserId } from "@/lib/integrations/ado/api";
 
 
 
@@ -59,15 +60,49 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
     setInstance((prev) => ({ ...prev, ...updates }));
   };
 
-  const testConnection = () => {
+  const testConnection = async (): Promise<boolean> => {
     setTestConnectionLoading(true);
-    setTimeout(() => {
-      setTestConnectionLoading(false);
-      setConnectionSuccessful(true);
+    setConnectionSuccessful(null);
+    
+    const reset = () => {
       setTimeout(() => {
         setConnectionSuccessful(null);
       }, 3000);
-    }, 2000);
+    };
+
+    try {
+      // Determine the base URL to use
+      const baseUrl = instance.baseUrl || `https://dev.azure.com/${instance.organization}`;
+      
+      // Fetch the authenticated user ID
+      const userId = await fetchAuthenticatedUserId(baseUrl, instance.personalAccessToken);
+      
+      if (userId) {
+        // Update instance with the fetched userId
+        updateInstance({ userId });
+        setConnectionSuccessful(true);
+        setTestConnectionLoading(false);
+        reset();
+        
+        return true;
+      } else {
+        setConnectionSuccessful(false);
+        setTestConnectionLoading(false);
+        reset();
+        return false;
+      }
+    } catch (error) {
+      console.error("Error testing connection:", error);
+      setConnectionSuccessful(false);
+      setTestConnectionLoading(false);
+      
+      // Reset error message after 3 seconds
+      setTimeout(() => {
+        setConnectionSuccessful(null);
+      }, 3000);
+      
+      return false;
+    }
   };
 
   const toggleTokenVisibility = (id: string) => {
@@ -78,8 +113,17 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   };
 
   // Handler for Add Instance
-  const handleAddInstance = () => {
+  const handleAddInstance = async () => {
     try {
+      // Test connection before saving
+      const connectionSuccess = await testConnection();
+      
+      if (!connectionSuccess) {
+        console.error("Connection test failed. Instance not saved.");
+        if (onComplete) onComplete(false);
+        return;
+      }
+      
       const config = loadConfig();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
