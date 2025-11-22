@@ -1,5 +1,5 @@
 "use client";
-import { Calendar, Home, Inbox, Search, Settings, Layers, ChevronRight } from "lucide-react";
+import { Home, Settings, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SidebarFooter,
@@ -10,7 +10,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuBadge,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
@@ -97,7 +96,7 @@ export function AppSidebar(props?: AppSidebarProps) {
                         {adoInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
-                              <a href={`/inbox/ado-${instance.id}`}>
+                              <a href={`/inbox/${instance.id}`}>
                                 <span>{instance.name}</span>
                               </a>
                             </SidebarMenuSubButton>
