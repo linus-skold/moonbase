@@ -7,8 +7,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { VersionBanner } from "@/components/VersionBanner";
 import SystemNotificationBanner from "@/components/banner/banner";
 import { BannerContainer } from "@/components/banner/BannerContainer";
-import { BannerAction, BannerTitle } from "@/components/ui/shadcn-io/banner";
-import { AlertCircle } from "lucide-react";
+import { BannerTitle } from "@/components/ui/shadcn-io/banner";
+import { IntegrationProvider } from "@/components/integration/IntegrationProvider";
+import { integrations } from "@/components/integration/integrations";
+import { CustomToaster } from "@/components/ui/custom-toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,12 +43,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex flex-col min-h-screen">
-            <BannerContainer>
-              <SystemNotificationBanner variant="github" canClose={false}>
-                <BannerTitle className="text-center">
-                    <span className="font-bold">Moonbase </span> is currently under <span className="font-bold">development</span>. Please report any
-                    issues on{" "}
+          <IntegrationProvider initialIntegrations={integrations}>
+            <div className="flex flex-col min-h-screen">
+              <BannerContainer>
+                <SystemNotificationBanner variant="github" canClose={false}>
+                  <BannerTitle className="text-center">
+                    <span className="font-bold">Moonbase </span> is currently
+                    under <span className="font-bold">development</span>. Please
+                    report any issues on{" "}
                     <a
                       href="https://github.com/linus-skold/moonbase/issues"
                       className="underline"
@@ -56,23 +60,25 @@ export default function RootLayout({
                       GitHub
                     </a>
                     .
-                </BannerTitle>
-              </SystemNotificationBanner>
-              <VersionBanner />
-            </BannerContainer>
+                  </BannerTitle>
+                </SystemNotificationBanner>
+                <VersionBanner />
+              </BannerContainer>
 
-            <div className="flex flex-1">
-              <SidebarProvider>
-                <AppSidebar />
+              <div className="flex flex-1">
+                <SidebarProvider>
+                  <AppSidebar />
 
-                <main className="flex-1">
-                  <SidebarTrigger />
-                  {children}
-                </main>
-              </SidebarProvider>
+                  <main className="flex-1">
+                    <SidebarTrigger />
+                    {children}
+                  </main>
+                </SidebarProvider>
+              </div>
             </div>
-          </div>
+          </IntegrationProvider>
         </ThemeProvider>
+        <CustomToaster position="top-center" />
       </body>
     </html>
   );
