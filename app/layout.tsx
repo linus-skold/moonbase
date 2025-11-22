@@ -33,9 +33,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="overflow-x-hidden">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
       >
         <ThemeProvider
           attribute="class"
@@ -65,11 +65,11 @@ export default function RootLayout({
                 <VersionBanner />
               </BannerContainer>
 
-              <div className="flex flex-1">
+              <div className="flex flex-1 overflow-x-hidden">
                 <SidebarProvider>
                   <AppSidebar />
 
-                  <main className="flex-1">
+                  <main className="flex-1 min-w-0 overflow-x-hidden">
                     <SidebarTrigger />
                     {children}
                   </main>
