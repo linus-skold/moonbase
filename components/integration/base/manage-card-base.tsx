@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AdoInstance } from "@/lib/ado/schema/instance.schema";
 import { VscAzureDevops } from "react-icons/vsc";
-import { CalendarIcon, Trash2 } from "lucide-react";
+import { CalendarIcon, Trash2, Power, PowerOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -94,6 +94,25 @@ export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCard
     <>
       <Card>
         <CardHeader>
+          <div className="flex items-center justify-between mb-2">
+            <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${
+              instance.enabled 
+                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
+                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+            }`}>
+              {instance.enabled ? (
+                <>
+                  <Power className="h-3 w-3" />
+                  Enabled
+                </>
+              ) : (
+                <>
+                  <PowerOff className="h-3 w-3" />
+                  Disabled
+                </>
+              )}
+            </div>
+          </div>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <VscAzureDevops className="h-5 w-5" />
