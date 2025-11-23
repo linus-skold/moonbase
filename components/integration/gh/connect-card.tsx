@@ -17,8 +17,7 @@ export function GhCard({ integration }: { integration: any }) {
 
   const handlePatComplete = (success: boolean) => {
     if (success) {
-      // Optionally refresh or show a success message
-      console.log("GitHub instance added successfully!");
+      
     }
   };
 

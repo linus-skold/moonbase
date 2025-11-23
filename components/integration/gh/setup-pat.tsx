@@ -114,7 +114,6 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       const config = storage.load();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
-      console.log("Current config instances:", instance);
       const valid = GhInstance.safeParse(instance);
 
       if(!valid.success) {
@@ -127,7 +126,6 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         ...instance,
       };
 
-      console.log("Adding new GitHub instance:", newInstance);
 
       const updatedConfig = { 
         ...config, 

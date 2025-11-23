@@ -128,7 +128,6 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       const config = storage.load();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
-      console.log("Current config instances:", instance);
       const valid = AdoInstance.safeParse(instance);
 
       if(!valid.success) {
@@ -144,7 +143,6 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         baseUrl: instance.baseUrl || undefined,
       };
 
-      console.log("Adding new ADO instance:", newInstance);
 
       // Optionally, generate a unique id if needed
       // newInstance.id = `instance-${Date.now()}`;
