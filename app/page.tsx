@@ -5,14 +5,14 @@ import { InboxLayout } from '@/components/inbox/InboxLayout';
 import { InboxProvider } from '@/components/inbox/InboxProvider';
 import { createAdoDataSource } from '@/lib/ado/data-source';
 import { Inbox } from 'lucide-react';
+import { createGhDataSource } from '@/lib/gh/data-source';
 
 export default function Home() {
   // Create all data sources
   const dataSources = React.useMemo(() => {
     const sources = [];
     sources.push(createAdoDataSource());
-    
-    // TODO: Add more data sources here
+    sources.push(createGhDataSource());
     
     return sources;
   }, []);

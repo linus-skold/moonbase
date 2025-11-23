@@ -4,7 +4,9 @@ import React from 'react';
 import { InboxLayout } from '@/components/inbox/InboxLayout';
 import { InboxProvider } from '@/components/inbox/InboxProvider';
 import { createAdoDataSource } from '@/lib/ado/data-source';
-import { loadConfig } from '@/lib/ado/storage';
+import { createGhDataSource } from '@/lib/gh/data-source';
+import { loadConfig as loadAdoConfig } from '@/lib/ado/storage';
+import { loadConfig as loadGhConfig } from '@/lib/gh/storage';
 import { Settings } from 'lucide-react';
 
 
@@ -17,21 +19,46 @@ interface PageProps {
 export default function Page({ params }: PageProps) {
   const { slug } = React.use(params);
   
-  const adoDataSource = React.useMemo(() => createAdoDataSource(slug), [slug]);
-  
-  // Get instance name from config
+  // Determine which data source to use based on instance ID
   const [instanceName, setInstanceName] = React.useState<string | null>(null);
-  
-
+  const [instanceType, setInstanceType] = React.useState<'ado' | 'github' | null>(null);
 
   React.useEffect(() => {
-    const config = loadConfig();
-    const instance = config?.instances?.find(inst => inst.id === slug);
-    setInstanceName(instance?.name || null);
+    // Check ADO config first
+    const adoConfig = loadAdoConfig();
+    const adoInstance = adoConfig?.instances?.find(inst => inst.id === slug);
+    
+    if (adoInstance) {
+      setInstanceName(adoInstance.name);
+      setInstanceType('ado');
+      return;
+    }
+    
+    // Check GitHub config
+    const ghConfig = loadGhConfig();
+    const ghInstance = ghConfig?.instances?.find(inst => inst.id === slug);
+    
+    if (ghInstance) {
+      setInstanceName(ghInstance.name);
+      setInstanceType('github');
+      return;
+    }
+    
+    setInstanceName(null);
+    setInstanceType(null);
   }, [slug]);
   
+  const dataSource = React.useMemo(() => {
+    if (instanceType === 'ado') {
+      return createAdoDataSource(slug);
+    } else if (instanceType === 'github') {
+      return createGhDataSource(slug);
+    }
+    return createAdoDataSource(slug); // fallback
+  }, [slug, instanceType]);
+  
   return (
-    <InboxProvider dataSources={[adoDataSource]}>
+    <InboxProvider dataSources={[dataSource]}>
       {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl }) => (
         
         <InboxLayout
