@@ -43,7 +43,7 @@ export function createGhDataSource(instanceId?: string): InboxDataSource {
       // Filter for specific instance if instanceId is provided
       let filteredConfig = { ...config, instances: parsedInstances };
       if (instanceId) {
-        const instance = config.instances.find(inst => inst.id === instanceId);
+        const instance = parsedInstances.find(inst => inst.id === instanceId);
         if (!instance) {
           return {};
         }
