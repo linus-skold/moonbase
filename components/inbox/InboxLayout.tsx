@@ -24,6 +24,7 @@ export interface InboxLayoutProps {
   error?: string | null;
   onRefresh?: () => Promise<void> | void;
   settingsUrl?: string;
+  lastRefreshTime?: Date | null;
   emptyStateConfig?: {
     icon?: React.ReactNode;
     title: string;
@@ -40,6 +41,7 @@ export function InboxLayout({
   isLoading,
   error,
   onRefresh,
+  lastRefreshTime,
   emptyStateConfig,
 }: InboxLayoutProps) {
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -130,6 +132,11 @@ export function InboxLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            {lastRefreshTime && (
+              <span className="text-xs text-muted-foreground">
+                Last updated: {lastRefreshTime.toLocaleTimeString()}
+              </span>
+            )}
             {onRefresh && (
               <Button
                 onClick={onRefresh}

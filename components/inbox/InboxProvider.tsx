@@ -20,6 +20,7 @@ export interface InboxProviderProps {
     refresh: (forceRefresh?: boolean) => Promise<void>;
     isConfigured: boolean;
     configUrl?: string;
+    lastRefreshTime: Date | null;
   }) => React.ReactNode;
   dataSources: InboxDataSource[];
   autoFetch?: boolean;
@@ -34,6 +35,7 @@ export function InboxProvider({
   const [groupedItems, setGroupedItems] = useState<GroupedInboxItems>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   // Only run on client side
   useEffect(() => {
@@ -70,6 +72,7 @@ export function InboxProvider({
         });
 
         setGroupedItems(allItems);
+        setLastRefreshTime(new Date());
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch inbox items"
@@ -114,6 +117,7 @@ export function InboxProvider({
         refresh,
         isConfigured: configStatus.isConfigured,
         configUrl: configStatus.configUrl,
+        lastRefreshTime,
       })}
     </>
   );

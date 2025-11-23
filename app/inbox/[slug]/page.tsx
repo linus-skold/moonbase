@@ -62,7 +62,7 @@ export default function Page({ params }: PageProps) {
   
   return (
     <InboxProvider dataSources={[dataSource]}>
-      {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl }) => (
+      {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime }) => (
         
         <InboxLayout
           title={instanceName ? `${instanceName} Inbox` : 'Inbox'}
@@ -70,6 +70,7 @@ export default function Page({ params }: PageProps) {
           isLoading={isLoading}
           error={error}
           onRefresh={() => refresh(true)}
+          lastRefreshTime={lastRefreshTime}
           emptyStateConfig={
             !isConfigured
               ? {
