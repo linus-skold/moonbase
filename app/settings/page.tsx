@@ -5,6 +5,7 @@ import { VscGithub, VscAzureDevops } from "react-icons/vsc";
 import React from "react";
 import { useIntegrations } from "@/components/integration/IntegrationProvider";
 import { loadConfig as loadAdoConfig } from "@/lib/ado/storage";
+import { loadConfig as loadGhConfig } from "@/lib/gh/storage";
 
 export default function SettingsPage() {
   // Map icon string to component
@@ -17,12 +18,15 @@ export default function SettingsPage() {
 
   // State for connected integration instances
   const [adoInstances, setAdoInstances] = React.useState<any[]>([]);
+  const [ghInstances, setGhInstances] = React.useState<any[]>([]);
   const [refreshKey, setRefreshKey] = React.useState(0);
-  // Add more states for other integrations as needed
 
   const loadInstances = React.useCallback(() => {
     const adoConfig = loadAdoConfig();
     setAdoInstances(adoConfig?.instances || []);
+    
+    const ghConfig = loadGhConfig();
+    setGhInstances(ghConfig?.instances || []);
   }, []);
 
   const handleDelete = React.useCallback(() => {
@@ -31,13 +35,13 @@ export default function SettingsPage() {
   }, []);
 
   React.useEffect(() => {
-    // Load Azure DevOps instances
+    // Load instances from all integrations
     loadInstances();
-    // Add more config loads for other integrations here
   }, [loadInstances, refreshKey]);
 
-  // Check for expiring PATs
-  const expiringInstances = adoInstances.filter((inst) => {
+  // Check for expiring PATs from all integrations
+  const allInstances = [...adoInstances, ...ghInstances];
+  const expiringInstances = allInstances.filter((inst) => {
     if (!inst.expiresAt) return false;
     const expireDate = new Date(inst.expiresAt);
     const now = new Date();
@@ -93,8 +97,9 @@ export default function SettingsPage() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {integrations.map((integration) => {
+            
             const ManageCardComponent = integration.manageIntegrationComponent;
-            // For demo, only Azure DevOps is handled. Extend for other integrations as needed.
+            
             if (integration.id === "ado") {
               return adoInstances.map((inst, idx) => (
                 <ManageCardComponent
@@ -105,13 +110,20 @@ export default function SettingsPage() {
                 />
               ));
             }
-           
+            
+            if (integration.id === "github") {
+              return ghInstances.map((inst, idx) => (
+                <ManageCardComponent
+                  key={inst.id || idx}
+                  integration={integration}
+                  instance={inst}
+                  onDelete={handleDelete}
+                />
+              ));
+            }
+            return null;
           })}
         </div>
-
-        {/* List connected ADO instances */}
-
-        {/* Add more integration instance lists here as needed */}
       </div>
     </div>
   );
