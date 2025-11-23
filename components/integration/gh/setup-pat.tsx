@@ -17,6 +17,7 @@ import { DatePicker } from "@/components/datepicker/DatePicker";
 import { create } from "@/lib/storage";
 import { GhInstance } from "@/lib/gh/schema/instance.schema";
 import { fetchAuthenticatedUser } from "@/lib/integrations/gh/api";
+import { WarningDialog } from "@/components/warning/WarningDialog";
 
 interface SetupPatProps {
   open: boolean;
@@ -34,6 +35,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   const [connectionSuccessful, setConnectionSuccessful] = React.useState<
     boolean | null
   >(null);
+  const [showWarning, setShowWarning] = React.useState(false);
 
   const [instance, setInstance] = React.useState<GhInstance>({
     id: `gh-instance-${Date.now()}`,
@@ -99,8 +101,16 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
     }));
   };
 
-  // Handler for Add Instance
-  const handleAddInstance = async () => {
+
+
+
+// Handler for Add Instance - shows warning first
+  const handleAddInstance = () => {
+    setShowWarning(true);
+  };
+
+  // Handler for confirming the warning and proceeding with save
+  const handleConfirmAddInstance = async () => {
     try {
       // Test connection before saving
       const connectionSuccess = await testConnection();
@@ -142,8 +152,20 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <>
+      <WarningDialog
+        isOpen={showWarning}
+        onClose={() => {
+          setShowWarning(false);
+          handleConfirmAddInstance();
+        }}
+      >
+        Your Personal Access Token will be stored locally in your browser. 
+        Please ensure you trust this device and understand the security implications.
+      </WarningDialog>
+
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add GitHub PAT Instance</DialogTitle>
           <DialogDescription>
@@ -255,5 +277,6 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 };
