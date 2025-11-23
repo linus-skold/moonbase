@@ -21,8 +21,11 @@ export function createAdoDataSource(instanceId?: string): InboxDataSource {
         return {};
       }
 
+      // Parse instances through schema to apply defaults (like instanceType)
+      const parsedInstances = config.instances.map(inst => AdoInstance.parse(inst));
+
       // Filter for specific instance if instanceId is provided
-      let filteredConfig = config;
+      let filteredConfig = { ...config, instances: parsedInstances };
       if (instanceId) {
         const instance = config.instances.find(
           (inst) => inst.id === instanceId
