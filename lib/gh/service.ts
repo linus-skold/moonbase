@@ -4,9 +4,76 @@ import { GhClient } from './client';
 import type { GhConfig } from './schema/config.schema';
 import type { GhInstance } from './schema/instance.schema';
 import type { GroupedInboxItems, InboxItem } from '../schema/inbox.schema';
+import { createWorkItemClassifier, normalizeLabels } from '../utils/workItemClassifier';
+import type { WorkItemKindMapping } from '../schema/workItemKind.schema';
+
+/**
+ * GitHub issue classification mappings
+ * Based on common labeling conventions and title patterns
+ */
+export const GITHUB_WORK_ITEM_KIND_MAPPING: WorkItemKindMapping = {
+  typeNameMap: {},
+  labelPatterns: [
+    // Bugs and defects (high priority)
+    { pattern: /^bug$/i, kind: "bug", priority: 10 },
+    { pattern: /^defect$/i, kind: "defect", priority: 10 },
+    { pattern: /^regression$/i, kind: "bug", priority: 9 },
+    { pattern: /bug:/i, kind: "bug", priority: 8 },
+
+    // Features and enhancements
+    { pattern: /^feature$/i, kind: "feature", priority: 10 },
+    { pattern: /^enhancement$/i, kind: "enhancement", priority: 10 },
+    { pattern: /^epic$/i, kind: "epic", priority: 10 },
+    { pattern: /feature:/i, kind: "feature", priority: 8 },
+    { pattern: /enhancement:/i, kind: "enhancement", priority: 8 },
+
+    // User stories
+    { pattern: /^user[- ]story$/i, kind: "userStory", priority: 10 },
+    { pattern: /^story$/i, kind: "userStory", priority: 9 },
+
+    // Documentation
+    { pattern: /^documentation$/i, kind: "documentation", priority: 10 },
+    { pattern: /^docs$/i, kind: "documentation", priority: 10 },
+    { pattern: /documentation:/i, kind: "documentation", priority: 8 },
+
+    // Improvement and refactor
+    { pattern: /^improvement$/i, kind: "improvement", priority: 10 },
+    { pattern: /^refactor$/i, kind: "refactor", priority: 10 },
+    { pattern: /^tech[- ]debt$/i, kind: "techDebt", priority: 10 },
+    { pattern: /^technical[- ]debt$/i, kind: "techDebt", priority: 10 },
+
+    // Questions and research
+    { pattern: /^question$/i, kind: "question", priority: 10 },
+    { pattern: /^research$/i, kind: "research", priority: 10 },
+    { pattern: /^spike$/i, kind: "spike", priority: 10 },
+
+    // Tasks
+    { pattern: /^task$/i, kind: "task", priority: 10 },
+    { pattern: /^chore$/i, kind: "task", priority: 9 },
+
+    // Tests
+    { pattern: /^test$/i, kind: "test", priority: 10 },
+    { pattern: /^testing$/i, kind: "test", priority: 10 },
+  ],
+  titlePatterns: [
+    // Common title prefixes
+    { pattern: /^\[bug\]/i, kind: "bug", priority: 5 },
+    { pattern: /^\[feature\]/i, kind: "feature", priority: 5 },
+    { pattern: /^\[enhancement\]/i, kind: "enhancement", priority: 5 },
+    { pattern: /^\[docs\]/i, kind: "documentation", priority: 5 },
+    { pattern: /^\[refactor\]/i, kind: "refactor", priority: 5 },
+    { pattern: /^\[task\]/i, kind: "task", priority: 5 },
+    { pattern: /^bug:/i, kind: "bug", priority: 5 },
+    { pattern: /^feature:/i, kind: "feature", priority: 5 },
+    { pattern: /^fix:/i, kind: "bug", priority: 5 },
+    { pattern: /^feat:/i, kind: "feature", priority: 5 },
+  ],
+  defaultKind: "other",
+};
 
 export class GhService {
   private config: GhConfig;
+  private workItemClassifier = createWorkItemClassifier(GITHUB_WORK_ITEM_KIND_MAPPING);
 
   constructor(config: GhConfig) {
     this.config = config;
@@ -68,6 +135,17 @@ export class GhService {
 
     const priority = this.getIssuePriority(issue);
 
+    // Classify the work item kind based on labels and title
+
+    const labels = normalizeLabels(issue.labels || []);
+    const workItemKind = this.workItemClassifier.classify({
+      typeName: 'issue',
+      labels,
+      title: issue.title || '',
+    }).kind;
+
+    
+
     return {
       id: `gh-issue-${instance.id}-${issue.id}`,
       type: 'workItem',
@@ -83,6 +161,7 @@ export class GhService {
       },
       instance: instance,
       priority,
+      workItemKind,
       assignedTo: issue.assignees?.[0] ? {
         displayName: issue.assignees[0].login || '',
         imageUrl: issue.assignees[0].avatar_url,
