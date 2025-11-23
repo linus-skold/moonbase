@@ -1,4 +1,3 @@
-import { AdoService } from '@/lib/ado/service';
 import { loadConfig } from '@/lib/ado/storage';
 import type { InboxDataSource } from '@/components/inbox/InboxProvider';
 import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
@@ -32,8 +31,21 @@ export function createAdoDataSource(instanceId?: string): InboxDataSource {
         };
       }
 
-      const service = new AdoService(filteredConfig);
-      return await service.fetchAndGroupInboxItems();
+      // Call the API route instead of using the service directly
+      const response = await fetch('/api/ado/inbox', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filteredConfig),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch ADO inbox items:', await response.text());
+        return {};
+      }
+
+      return await response.json();
     },
 
     getConfigStatus: () => {
