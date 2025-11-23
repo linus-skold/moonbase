@@ -60,8 +60,6 @@ export class WorkItemClassifier {
       details: string;
     }> = [];
     
-    console.log("Classifying work item with input:", input);
-
     // 1. Type name mapping (base score: 100)
     if (input.typeName) {
       const kind = this.classifyByTypeName(input.typeName);
