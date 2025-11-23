@@ -8,9 +8,49 @@ import type { AdoPullRequest } from './schema/pr.schema';
 import type { AdoWorkItem } from './schema/work-item.schema';
 import type { AdoPipelineRun } from './schema/pipeline.schema';
 import type { GroupedInboxItems, InboxItem } from '../schema/inbox.schema';
+import { createWorkItemClassifier } from '../utils/workItemClassifier';
+import { WorkItemKindMapping } from '../schema/workItemKind.schema';
+
+
+const ADO_WORK_ITEM_KIND_MAPPING: WorkItemKindMapping = {
+  typeNameMap: {
+    // Bug/Defect types
+    bug: "bug",
+    defect: "defect",
+    impediment: "bug",
+
+    // Feature types
+    epic: "epic",
+    feature: "feature",
+    "user story": "userStory",
+    "product backlog item": "userStory",
+
+    // Task types
+    task: "task",
+    "sub-task": "subTask",
+    spike: "spike",
+
+    // Test types
+    "test case": "test",
+    "test plan": "test",
+    "test suite": "test",
+
+    // Other types
+    issue: "other",
+    requirement: "userStory",
+    "change request": "enhancement",
+    risk: "other",
+    review: "other",
+  },
+  labelPatterns: [],
+  titlePatterns: [],
+  defaultKind: "task",
+};
+
 
 export class AdoService {
   private config: AdoConfig;
+  private workItemClassifier = createWorkItemClassifier(ADO_WORK_ITEM_KIND_MAPPING);
 
   constructor(config: AdoConfig) {
     this.config = config;
@@ -64,7 +104,12 @@ export class AdoService {
     const baseUrl = instance.baseUrl || `https://dev.azure.com/${instance.organization}`;
     const workItemUrl = workItem._links?.html?.href || 
       `${baseUrl}/${projectName}/_workitems/edit/${workItem.id}`;
-
+    // Classify the work item kind based on ADO work item type
+    const workItemType = workItem.fields['System.WorkItemType'];
+    const workItemKind = this.workItemClassifier.classify({
+      typeName: workItemType,
+      title: workItem.fields['System.Title'],
+    }).kind;
 
       // TODO: Refactor to be parsed properly using zod schema transform
     return {
@@ -83,6 +128,7 @@ export class AdoService {
       instance: instance,
       priority,
       assignedTo: workItem.fields['System.AssignedTo'],
+      workItemKind,
       metadata: {
         workItemType: workItem.fields['System.WorkItemType'],
         areaPath: workItem.fields['System.AreaPath'],
