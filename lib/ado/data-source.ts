@@ -3,17 +3,31 @@ import type { GroupedInboxItems } from "@/lib/schema/inbox.schema";
 
 import { create } from "@/lib/storage";
 import { AdoInstance } from "./schema/instance.schema";
+import InboxCache from "@/lib/utils/inbox-cache";
 
 export function createAdoDataSource(instanceId?: string): InboxDataSource {
   const storage = create<{ instances: AdoInstance[] }>("ado-config", "1.0");
+  const dataSourceName = "ado";
   return {
-    id: "ado",
+    id: dataSourceName,
     name: "Azure DevOps",
 
-    fetchInboxItems: async (): Promise<GroupedInboxItems> => {
+    fetchInboxItems: async (options?: { forceRefresh?: boolean }): Promise<GroupedInboxItems> => {
       // Only run on client side
       if (typeof window === "undefined") {
         return {};
+      }
+
+      // Check cache first (unless force refresh)
+      if (!options?.forceRefresh) {
+        const cachedData = InboxCache.getCachedItems(dataSourceName, instanceId);
+        if (cachedData) {
+          console.log("Using cached ADO inbox data");
+          return cachedData;
+        }
+      } else {
+        // Clear cache when force refreshing
+        InboxCache.clearCachedItems(dataSourceName, instanceId);
       }
 
       const config = storage.load();
@@ -56,7 +70,12 @@ export function createAdoDataSource(instanceId?: string): InboxDataSource {
         return {};
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      // Cache the fetched data
+      InboxCache.setCachedItems(dataSourceName, data, instanceId);
+      
+      return data;
     },
 
     getConfigStatus: () => {

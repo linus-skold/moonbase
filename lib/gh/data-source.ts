@@ -4,17 +4,32 @@ import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
 
 import {create} from '@/lib/storage';
 import { GhInstance } from './schema/instance.schema';
+import InboxCache from '@/lib/utils/inbox-cache';
 
 export function createGhDataSource(instanceId?: string): InboxDataSource {
   const storage = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+  const dataSourceName = 'github';
+  
   return {
-    id: 'github',
+    id: dataSourceName,
     name: 'GitHub',
     
-    fetchInboxItems: async (): Promise<GroupedInboxItems> => {
+    fetchInboxItems: async (options?: { forceRefresh?: boolean }): Promise<GroupedInboxItems> => {
       // Only run on client side
       if (typeof window === 'undefined') {
         return {};
+      }
+      
+      // Check cache first (unless force refresh)
+      if (!options?.forceRefresh) {
+        const cachedData = InboxCache.getCachedItems(dataSourceName, instanceId);
+        if (cachedData) {
+          console.log('Using cached GitHub inbox data');
+          return cachedData;
+        }
+      } else {
+        // Clear cache when force refreshing
+        InboxCache.clearCachedItems(dataSourceName, instanceId);
       }
       
       const config = storage.load();
@@ -39,7 +54,12 @@ export function createGhDataSource(instanceId?: string): InboxDataSource {
       }
 
       const service = new GhService(filteredConfig);
-      return await service.fetchAndGroupInboxItems();
+      const data = await service.fetchAndGroupInboxItems();
+      
+      // Cache the fetched data
+      InboxCache.setCachedItems(dataSourceName, data, instanceId);
+      
+      return data;
     },
 
     getConfigStatus: () => {

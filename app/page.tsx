@@ -26,7 +26,7 @@ export default function Home() {
           groupedItems={groupedItems}
           isLoading={isLoading}
           error={error}
-          onRefresh={refresh}
+          onRefresh={() => refresh(true)}
           emptyStateConfig={
             !isConfigured
               ? {

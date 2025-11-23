@@ -22,7 +22,7 @@ export interface InboxLayoutProps {
   groupedItems: GroupedInboxItems;
   isLoading: boolean;
   error?: string | null;
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<void> | void;
   settingsUrl?: string;
   emptyStateConfig?: {
     icon?: React.ReactNode;

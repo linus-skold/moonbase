@@ -1,12 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
-import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
+import React, { useState, useEffect, useCallback } from "react";
+import type { GroupedInboxItems } from "@/lib/schema/inbox.schema";
 
 export interface InboxDataSource {
   id: string;
   name: string;
-  fetchInboxItems: () => Promise<GroupedInboxItems>;
+  fetchInboxItems: (options?: {
+    forceRefresh?: boolean;
+  }) => Promise<GroupedInboxItems>;
   getConfigStatus: () => { isConfigured: boolean; configUrl?: string };
 }
 
@@ -15,7 +17,7 @@ export interface InboxProviderProps {
     groupedItems: GroupedInboxItems;
     isLoading: boolean;
     error: string | null;
-    refresh: () => Promise<void>;
+    refresh: (forceRefresh?: boolean) => Promise<void>;
     isConfigured: boolean;
     configUrl?: string;
   }) => React.ReactNode;
@@ -23,54 +25,62 @@ export interface InboxProviderProps {
   autoFetch?: boolean;
 }
 
-export function InboxProvider({ 
-  children, 
+export function InboxProvider({
+  children,
   dataSources,
   autoFetch = true,
 }: InboxProviderProps) {
-  const [mounted, setMounted] = React.useState(false);
-  const [groupedItems, setGroupedItems] = React.useState<GroupedInboxItems>({});
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [groupedItems, setGroupedItems] = useState<GroupedInboxItems>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Only run on client side
-  React.useEffect(() => {
+  useEffect(() => {
     setMounted(true);
   }, []);
 
-  const refresh = React.useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const refresh = useCallback(
+    async (forceRefresh = false) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const allItems: GroupedInboxItems = {};
+      try {
+        const allItems: GroupedInboxItems = {};
 
-      // Fetch from all data sources in parallel
-      const results = await Promise.allSettled(
-        dataSources.map((source) => source.fetchInboxItems())
-      );
+        // Fetch from all data sources in parallel
+        const results = await Promise.allSettled(
+          dataSources.map((source) => source.fetchInboxItems({ forceRefresh }))
+        );
 
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          // Merge items from this source
-          Object.entries(result.value).forEach(([key, value]) => {
-            // Ensure unique keys by prefixing with source ID
-            const uniqueKey = `${dataSources[index].id}-${key}`;
-            allItems[uniqueKey] = value;
-          });
-        } else {
-          console.error(`Error fetching from ${dataSources[index].name}:`, result.reason);
-        }
-      });
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            // Merge items from this source
+            Object.entries(result.value).forEach(([key, value]) => {
+              // Ensure unique keys by prefixing with source ID
+              const uniqueKey = `${dataSources[index].id}-${key}`;
+              allItems[uniqueKey] = value;
+            });
+          } else {
+            console.error(
+              `Error fetching from ${dataSources[index].name}:`,
+              result.reason
+            );
+          }
+        });
 
-      setGroupedItems(allItems);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch inbox items');
-      console.error('Error fetching inbox items:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dataSources]);
+        setGroupedItems(allItems);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch inbox items"
+        );
+        console.error("Error fetching inbox items:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [dataSources]
+  );
 
   // Auto-fetch on mount and when data sources change (only on client)
   React.useEffect(() => {
@@ -84,9 +94,12 @@ export function InboxProvider({
     if (!mounted) {
       return { isConfigured: false, configUrl: undefined };
     }
-    
-    const configured = dataSources.some((source) => source.getConfigStatus().isConfigured);
-    const configUrl = dataSources.find((source) => !source.getConfigStatus().isConfigured)
+
+    const configured = dataSources.some(
+      (source) => source.getConfigStatus().isConfigured
+    );
+    const configUrl = dataSources
+      .find((source) => !source.getConfigStatus().isConfigured)
       ?.getConfigStatus().configUrl;
 
     return { isConfigured: configured, configUrl };
