@@ -5,10 +5,10 @@ import { InboxLayout } from '@/components/inbox/InboxLayout';
 import { InboxProvider } from '@/components/inbox/InboxProvider';
 import { createAdoDataSource } from '@/lib/ado/data-source';
 import { createGhDataSource } from '@/lib/gh/data-source';
-import { loadConfig as loadAdoConfig } from '@/lib/ado/storage';
-import { loadConfig as loadGhConfig } from '@/lib/gh/storage';
 import { Settings } from 'lucide-react';
-
+import { create } from '@/lib/storage';
+import { AdoInstance } from '@/lib/ado/schema/instance.schema';
+import { GhInstance } from '@/lib/gh/schema/instance.schema';
 
 interface PageProps {
   params: Promise<{
@@ -17,15 +17,18 @@ interface PageProps {
 }
 
 export default function Page({ params }: PageProps) {
-  const { slug } = React.use(params);
+  const storageAdo = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
+  const storageGh = create<{ instances: GhInstance[] }>('gh-config', '1.0');
   
+  const { slug } = React.use(params);
+
   // Determine which data source to use based on instance ID
   const [instanceName, setInstanceName] = React.useState<string | null>(null);
   const [instanceType, setInstanceType] = React.useState<'ado' | 'github' | null>(null);
 
   React.useEffect(() => {
     // Check ADO config first
-    const adoConfig = loadAdoConfig();
+    const adoConfig = storageAdo.load();
     const adoInstance = adoConfig?.instances?.find(inst => inst.id === slug);
     
     if (adoInstance) {
@@ -35,7 +38,7 @@ export default function Page({ params }: PageProps) {
     }
     
     // Check GitHub config
-    const ghConfig = loadGhConfig();
+    const ghConfig = storageGh.load();
     const ghInstance = ghConfig?.instances?.find(inst => inst.id === slug);
     
     if (ghInstance) {

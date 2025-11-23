@@ -19,9 +19,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { loadConfig as loadAdoConfig, saveConfig as saveAdoConfig } from "@/lib/ado/storage";
-import { loadConfig as loadGhConfig, saveConfig as saveGhConfig } from "@/lib/gh/storage";
 import { toast } from "sonner";
+import { create as createAdoStorage } from "@/lib/storage";
 
 type InstanceType = AdoInstance | GhInstance;
 
@@ -69,6 +68,10 @@ function formatExpirationText(expiresAt: Date | number | undefined, daysRemainin
 
 
 export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCardProps) => {
+  const storageAdo = createAdoStorage<{ instances: AdoInstance[] }>('ado-config', '1.0');
+  const storageGh = createAdoStorage<{ instances: GhInstance[] }>('gh-config', '1.0');
+
+
   const daysRemaining = getDaysUntilExpiration(instance.expiresAt);
   const expirationColor = getExpirationColor(daysRemaining);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -78,13 +81,13 @@ export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCard
     const isAdoInstance = 'organization' in instance || 'baseUrl' in instance;
     
     if (isAdoInstance) {
-      const config = loadAdoConfig();
+      const config = storageAdo.load();
       if (!config) {
         toast.error('Failed to load configuration');
         return;
       }
       const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
-      const success = saveAdoConfig({ ...config, instances: updatedInstances });
+      const success = storageAdo.save({ ...config, instances: updatedInstances });
       
       if (success) {
         toast.success('Instance deleted successfully');
@@ -94,13 +97,13 @@ export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCard
         toast.error('Failed to delete instance');
       }
     } else {
-      const config = loadGhConfig();
+      const config = storageGh.load();
       if (!config) {
         toast.error('Failed to load configuration');
         return;
       }
       const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
-      const success = saveGhConfig({ ...config, instances: updatedInstances });
+      const success = storageGh.save({ ...config, instances: updatedInstances });
       
       if (success) {
         toast.success('Instance deleted successfully');

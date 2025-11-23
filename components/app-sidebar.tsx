@@ -16,14 +16,16 @@ import {
 } from "@/components/ui/sidebar";
 import { CustomSidebar } from "@/components/sidebar/custom-sidebar";
 import { VscGithub, VscAzureDevops } from "react-icons/vsc";
-import { loadConfig as loadAdoConfig } from "@/lib/ado/storage";
-import { loadConfig as loadGhConfig } from "@/lib/gh/storage";
 import React from "react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+
+import { create } from "@/lib/storage";
+import { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { GhInstance } from "@/lib/gh/schema/instance.schema";
 
 // Menu items.
 const items = [
@@ -45,16 +47,19 @@ interface AppSidebarProps {
 };
 
 export function AppSidebar(props?: AppSidebarProps) {
+  const storageAdo = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
+  const storageGh = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+
   const [adoInstances, setAdoInstances] = React.useState<any[]>([]);
   const [ghInstances, setGhInstances] = React.useState<any[]>([]);
   const [isAdoOpen, setIsAdoOpen] = React.useState(true);
   const [isGhOpen, setIsGhOpen] = React.useState(true);
 
   React.useEffect(() => {
-    const adoConfig = loadAdoConfig();
+    const adoConfig = storageAdo.load();
     setAdoInstances(adoConfig?.instances || []);
     
-    const ghConfig = loadGhConfig();
+    const ghConfig = storageGh.load();
     setGhInstances(ghConfig?.instances || []);
   }, []);
 

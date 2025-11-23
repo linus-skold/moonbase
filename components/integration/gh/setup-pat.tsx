@@ -14,7 +14,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
-import { loadConfig, saveConfig } from "@/lib/gh/storage";
+import { create } from "@/lib/storage";
 import { GhInstance } from "@/lib/gh/schema/instance.schema";
 import { fetchAuthenticatedUser } from "@/lib/integrations/gh/api";
 
@@ -25,6 +25,7 @@ interface SetupPatProps {
 }
 
 export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
+  const storage = create<{ instances: GhInstance[] }>('gh-config', '1.0');
   const [showTokens, setShowTokens] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -110,7 +111,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         return;
       }
       
-      const config = loadConfig();
+      const config = storage.load();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
       console.log("Current config instances:", instance);
@@ -134,7 +135,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         environments: config?.environments ?? [],
         pinnedRepositories: config?.pinnedRepositories ?? [],
       };
-      saveConfig(updatedConfig);
+      storage.save(updatedConfig);
       if (onComplete) onComplete(true);
       onOpenChange(false);
     } catch (e) {

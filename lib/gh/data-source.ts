@@ -1,9 +1,12 @@
 import { GhService } from './service';
-import { loadConfig } from './storage';
 import type { InboxDataSource } from '@/components/inbox/InboxProvider';
 import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
 
+import {create} from '@/lib/storage';
+import { GhInstance } from './schema/instance.schema';
+
 export function createGhDataSource(instanceId?: string): InboxDataSource {
+  const storage = create<{ instances: GhInstance[] }>('gh-config', '1.0');
   return {
     id: 'github',
     name: 'GitHub',
@@ -14,7 +17,7 @@ export function createGhDataSource(instanceId?: string): InboxDataSource {
         return {};
       }
       
-      const config = loadConfig();
+      const config = storage.load();
       if (!config || config.instances.length === 0) {
         return {};
       }
@@ -45,7 +48,7 @@ export function createGhDataSource(instanceId?: string): InboxDataSource {
         };
       }
       
-      const config = loadConfig();
+      const config = storage.load();
       
       // Check if specific instance exists and is configured
       if (instanceId) {

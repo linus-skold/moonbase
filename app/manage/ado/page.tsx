@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import React from 'react';
-import { loadConfig, saveConfig } from '@/lib/ado/storage';
+import { create } from '@/lib/storage'
 import { AdoInstance } from '@/lib/ado/schema/instance.schema';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Trash2, Eye, EyeOff } from 'lucide-react';
@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 
 export default function Page() {
+  const storage = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
   const searchParams = useSearchParams();
   const router = useRouter();
   const instanceId = searchParams.get('instanceId');
@@ -56,7 +57,7 @@ export default function Page() {
       return;
     }
 
-    const config = loadConfig();
+    const config = storage.load();
     const foundInstance = config?.instances?.find((inst) => inst.id === instanceId);
     
     if (foundInstance) {
@@ -79,7 +80,7 @@ export default function Page() {
   const handleSave = () => {
     if (!instance || !instanceId) return;
 
-    const config = loadConfig();
+    const config = storage.load();
     if (!config) return;
 
     // Instance is already in correct format with proper types
@@ -87,7 +88,7 @@ export default function Page() {
       inst.id === instanceId ? instance : inst
     );
 
-    const success = saveConfig({ ...config, instances: updatedInstances });
+    const success = storage.save({ ...config, instances: updatedInstances });
     if (success) {
       setHasChanges(false);
       toast.success('Instance saved successfully');
@@ -99,7 +100,7 @@ export default function Page() {
   const handleStatusMappingsSave = (mappings: any[]) => {
     if (!instance || !instanceId) return;
 
-    const config = loadConfig();
+    const config = storage.load();
     if (!config) return;
 
     const updatedInstance = { ...instance, statusMappings: mappings };
@@ -107,7 +108,7 @@ export default function Page() {
       inst.id === instanceId ? updatedInstance : inst
     );
 
-    const success = saveConfig({ ...config, instances: updatedInstances });
+    const success = storage.save({ ...config, instances: updatedInstances });
     if (success) {
       setInstance(updatedInstance);
       toast.success('Status mappings updated successfully');
@@ -119,11 +120,11 @@ export default function Page() {
   const handleDelete = () => {
     if (!instanceId) return;
 
-    const config = loadConfig();
+    const config = storage.load();
     if (!config) return;
 
     const updatedInstances = config.instances.filter((inst) => inst.id !== instanceId);
-    const success = saveConfig({ ...config, instances: updatedInstances });
+    const success = storage.save({ ...config, instances: updatedInstances });
     
     if (success) {
       toast.success('Instance deleted successfully');

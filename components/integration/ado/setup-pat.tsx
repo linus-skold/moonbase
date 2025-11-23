@@ -14,10 +14,10 @@ import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
-import { loadConfig, saveConfig } from "@/lib/ado/storage";
 import { AdoInstance } from "@/lib/ado/schema/instance.schema";
 import { fetchAuthenticatedUserId } from "@/lib/integrations/ado/api";
 
+import { create } from "@/lib/storage";
 
 
 interface SetupPatProps {
@@ -27,6 +27,7 @@ interface SetupPatProps {
 }
 
 export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
+  const storage = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
   const [showTokens, setShowTokens] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -124,7 +125,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         return;
       }
       
-      const config = loadConfig();
+      const config = storage.load();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
       console.log("Current config instances:", instance);
@@ -152,7 +153,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         instances: [...instances, newInstance],
         environments: config?.environments ?? [], // Ensure environments is always an array
       };
-      saveConfig(updatedConfig);
+      storage.save(updatedConfig);
       if (onComplete) onComplete(true);
       onOpenChange(false);
     } catch (e) {

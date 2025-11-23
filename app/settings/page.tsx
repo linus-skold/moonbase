@@ -4,10 +4,16 @@ import { Button } from "@/components/ui/button";
 import { VscGithub, VscAzureDevops } from "react-icons/vsc";
 import React from "react";
 import { useIntegrations } from "@/components/integration/IntegrationProvider";
-import { loadConfig as loadAdoConfig } from "@/lib/ado/storage";
-import { loadConfig as loadGhConfig } from "@/lib/gh/storage";
+
+import { create } from "@/lib/storage";
+import { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { GhInstance } from "@/lib/gh/schema/instance.schema";
 
 export default function SettingsPage() {
+
+  const storageAdo = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
+  const storageGh = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+
   // Map icon string to component
   const iconMap: Record<string, React.ComponentType<any>> = {
     VscAzureDevops,
@@ -22,10 +28,10 @@ export default function SettingsPage() {
   const [refreshKey, setRefreshKey] = React.useState(0);
 
   const loadInstances = React.useCallback(() => {
-    const adoConfig = loadAdoConfig();
+    const adoConfig = storageAdo.load();
     setAdoInstances(adoConfig?.instances || []);
     
-    const ghConfig = loadGhConfig();
+    const ghConfig = storageGh.load();
     setGhInstances(ghConfig?.instances || []);
   }, []);
 
