@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { GhInstance } from "@/lib/gh/schema/instance.schema";
 import { VscAzureDevops } from "react-icons/vsc";
 import { CalendarIcon, Trash2, Power, PowerOff } from "lucide-react";
 import {
@@ -18,16 +19,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { loadConfig, saveConfig } from "@/lib/ado/storage";
+import { loadConfig as loadAdoConfig, saveConfig as saveAdoConfig } from "@/lib/ado/storage";
+import { loadConfig as loadGhConfig, saveConfig as saveGhConfig } from "@/lib/gh/storage";
 import { toast } from "sonner";
 
-
+type InstanceType = AdoInstance | GhInstance;
 
 interface ManageCardProps {
   children?: React.ReactNode;
   onClick?: () => void;
   onDelete?: () => void;
-  instance: AdoInstance;
+  instance: InstanceType;
   addText?: string;
 }
 
@@ -72,21 +74,41 @@ export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCard
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleDelete = () => {
-    const config = loadConfig();
-    if (!config) {
-      toast.error('Failed to load configuration');
-      return;
-    }
-
-    const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
-    const success = saveConfig({ ...config, instances: updatedInstances });
+    // Determine instance type by checking for properties
+    const isAdoInstance = 'organization' in instance || 'baseUrl' in instance;
     
-    if (success) {
-      toast.success('Instance deleted successfully');
-      setDeleteDialogOpen(false);
-      onDelete?.();
+    if (isAdoInstance) {
+      const config = loadAdoConfig();
+      if (!config) {
+        toast.error('Failed to load configuration');
+        return;
+      }
+      const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
+      const success = saveAdoConfig({ ...config, instances: updatedInstances });
+      
+      if (success) {
+        toast.success('Instance deleted successfully');
+        setDeleteDialogOpen(false);
+        onDelete?.();
+      } else {
+        toast.error('Failed to delete instance');
+      }
     } else {
-      toast.error('Failed to delete instance');
+      const config = loadGhConfig();
+      if (!config) {
+        toast.error('Failed to load configuration');
+        return;
+      }
+      const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
+      const success = saveGhConfig({ ...config, instances: updatedInstances });
+      
+      if (success) {
+        toast.success('Instance deleted successfully');
+        setDeleteDialogOpen(false);
+        onDelete?.();
+      } else {
+        toast.error('Failed to delete instance');
+      }
     }
   };
 
@@ -128,7 +150,12 @@ export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCard
             </Button>
           </CardTitle>
           <CardDescription>
-            {instance.baseUrl || instance.organization}
+            {'baseUrl' in instance 
+              ? (instance.baseUrl || instance.organization)
+              : 'username' in instance 
+                ? `@${instance.username}` 
+                : 'Personal Instance'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

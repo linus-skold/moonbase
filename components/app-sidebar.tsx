@@ -17,6 +17,7 @@ import {
 import { CustomSidebar } from "@/components/sidebar/custom-sidebar";
 import { VscGithub, VscAzureDevops } from "react-icons/vsc";
 import { loadConfig as loadAdoConfig } from "@/lib/ado/storage";
+import { loadConfig as loadGhConfig } from "@/lib/gh/storage";
 import React from "react";
 import {
   Collapsible,
@@ -45,11 +46,16 @@ interface AppSidebarProps {
 
 export function AppSidebar(props?: AppSidebarProps) {
   const [adoInstances, setAdoInstances] = React.useState<any[]>([]);
+  const [ghInstances, setGhInstances] = React.useState<any[]>([]);
   const [isAdoOpen, setIsAdoOpen] = React.useState(true);
+  const [isGhOpen, setIsGhOpen] = React.useState(true);
 
   React.useEffect(() => {
-    const config = loadAdoConfig();
-    setAdoInstances(config?.instances || []);
+    const adoConfig = loadAdoConfig();
+    setAdoInstances(adoConfig?.instances || []);
+    
+    const ghConfig = loadGhConfig();
+    setGhInstances(ghConfig?.instances || []);
   }, []);
 
   return (
@@ -94,6 +100,37 @@ export function AppSidebar(props?: AppSidebarProps) {
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         {adoInstances.map((instance) => (
+                          <SidebarMenuSubItem key={instance.id}>
+                            <SidebarMenuSubButton asChild>
+                              <a href={`/inbox/${instance.id}`}>
+                                <span>{instance.name}</span>
+                              </a>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
+              
+              {ghInstances.length > 0 && (
+                <Collapsible
+                  open={isGhOpen}
+                  onOpenChange={setIsGhOpen}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton>
+                        <VscGithub className="h-4 w-4" />
+                        <span>GitHub</span>
+                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {ghInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
                               <a href={`/inbox/${instance.id}`}>
