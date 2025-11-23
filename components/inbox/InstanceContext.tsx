@@ -2,9 +2,12 @@
 
 import React from 'react';
 import type { AdoInstance } from '@/lib/ado/schema/instance.schema';
+import type { GhInstance } from '@/lib/gh/schema/instance.schema';
+
+type IntegrationInstance = AdoInstance | GhInstance;
 
 interface InstanceContextValue {
-  instance: AdoInstance | null;
+  instance: IntegrationInstance | null;
 }
 
 const InstanceContext = React.createContext<InstanceContextValue | undefined>(undefined);
@@ -13,7 +16,7 @@ export function InstanceProvider({
   instance, 
   children 
 }: { 
-  instance: AdoInstance | null;
+  instance: IntegrationInstance | null;
   children: React.ReactNode;
 }) {
   return (
