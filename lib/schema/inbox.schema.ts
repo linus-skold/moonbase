@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AdoInstance } from '../ado/schema/instance.schema';
 import { GhInstance } from '../gh/schema/instance.schema';
+import { WorkItemKindSchema } from './workItemKind.schema';
 
 
 export const InboxItemTypeSchema = z.enum(['pullRequest', 'workItem', 'pipeline', 'task']);
@@ -30,6 +31,7 @@ export const InboxItemSchema = z.object({
     displayName: z.string(),
     imageUrl: z.string().optional(),
   }).optional(),
+  workItemKind: WorkItemKindSchema.optional(),
 });
 export type InboxItem = z.infer<typeof InboxItemSchema>;
 
