@@ -12,6 +12,7 @@ import { IntegrationProvider } from "@/components/integration/IntegrationProvide
 import { integrations } from "@/components/integration/integrations";
 import { CustomToaster } from "@/components/ui/custom-toaster";
 import { NewItemsProvider } from "@/components/inbox/NewItemsContext";
+import { GlobalInboxProvider } from "@/components/inbox/GlobalInboxProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,7 +47,8 @@ export default function RootLayout({
         >
           <IntegrationProvider initialIntegrations={integrations}>
             <NewItemsProvider>
-              <div className="flex flex-col h-screen overflow-hidden">
+              <GlobalInboxProvider>
+                <div className="flex flex-col h-screen overflow-hidden">
                 <BannerContainer>
                   <SystemNotificationBanner variant="github" canClose={false}>
                     <BannerTitle className="text-center">
@@ -78,6 +80,7 @@ export default function RootLayout({
                   </SidebarProvider>
                 </div>
               </div>
+              </GlobalInboxProvider>
             </NewItemsProvider>
           </IntegrationProvider>
         </ThemeProvider>

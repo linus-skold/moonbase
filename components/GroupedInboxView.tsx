@@ -2,7 +2,6 @@ import { Card } from "@/components/ui/card";
 import type { GroupedInboxItems } from "@/lib/schema/inbox.schema";
 import { Button } from "@/components/ui/button";
 import { ProjectCardComponent } from "@/components/project-group/ProjectGroup";
-import { InboxContextProvider } from "@/components/inbox/InboxContext";
 
 interface GroupedInboxViewProps {
   groupedItems: GroupedInboxItems;
@@ -25,7 +24,7 @@ export function GroupedInboxView({ groupedItems, markAsRead }: GroupedInboxViewP
     );
   }
 
-  const content = (
+  return (
     <div className="space-y-4">
       {Object.keys(groupedItems).map((projectKey) => {
         const group = groupedItems[projectKey];
@@ -37,14 +36,4 @@ export function GroupedInboxView({ groupedItems, markAsRead }: GroupedInboxViewP
       })}
     </div>
   );
-
-  if (markAsRead) {
-    return (
-      <InboxContextProvider markAsRead={markAsRead}>
-        {content}
-      </InboxContextProvider>
-    );
-  }
-
-  return content;
 }

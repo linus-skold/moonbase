@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useEffect, use, useMemo } from 'react';
+import { useState, useEffect, use } from 'react';
 import { InboxLayout } from '@/components/inbox/InboxLayout';
-import { InboxProvider } from '@/components/inbox/InboxProvider';
-import { createAdoDataSource } from '@/lib/ado/data-source';
-import { createGhDataSource } from '@/lib/gh/data-source';
+import { useInbox } from '@/components/inbox/InboxContext';
 import { Settings } from 'lucide-react';
 import { create } from '@/lib/storage';
 import { AdoConfigSchema } from '@/lib/ado/schema/instance.schema';
@@ -52,42 +50,31 @@ export default function Page({ params }: PageProps) {
     setInstanceType(null);
   }, [slug]);
   
-  const dataSource = useMemo(() => {
-    if (instanceType === 'ado') {
-      return createAdoDataSource(slug);
-    } else if (instanceType === 'github') {
-      return createGhDataSource(slug);
-    }
-    return createAdoDataSource(slug); // fallback
-  }, [slug, instanceType]);
+  // Use the global inbox context but filter by instance ID
+  const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead } = useInbox(slug);
   
   return (
-    <InboxProvider dataSources={[dataSource]} instanceId={slug}>
-      {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead }) => (
-        
-        <InboxLayout
-          title={instanceName ? `${instanceName} Inbox` : 'Inbox'}
-          groupedItems={groupedItems}
-          isLoading={isLoading}
-          error={error}
-          onRefresh={() => refresh(true)}
-          lastRefreshTime={lastRefreshTime}
-          newItemsCount={newItemsCount}
-          markAllAsRead={markAllAsRead}
-          markAsRead={markAsRead}
-          emptyStateConfig={
-            !isConfigured
-              ? {
-                  icon: <Settings className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />,
-                  title: 'No Instances Configured',
-                  description: 'Add your instances to start tracking your tasks and work items in Moonbase.',
-                  actionLabel: 'Add Instance',
-                  actionUrl: configUrl,
-                }
-              : undefined
-          }
-        />
-      )}
-    </InboxProvider>
+    <InboxLayout
+      title={instanceName ? `${instanceName} Inbox` : 'Inbox'}
+      groupedItems={groupedItems}
+      isLoading={isLoading}
+      error={error}
+      onRefresh={() => refresh(true)}
+      lastRefreshTime={lastRefreshTime}
+      newItemsCount={newItemsCount}
+      markAllAsRead={markAllAsRead}
+      markAsRead={markAsRead}
+      emptyStateConfig={
+        !isConfigured
+          ? {
+              icon: <Settings className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />,
+              title: 'No Instances Configured',
+              description: 'Add your instances to start tracking your tasks and work items in Moonbase.',
+              actionLabel: 'Add Instance',
+              actionUrl: configUrl,
+            }
+          : undefined
+      }
+    />
   );
 }
