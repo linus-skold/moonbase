@@ -2,11 +2,11 @@ import type { InboxDataSource } from "@/components/inbox/InboxProvider";
 import type { GroupedInboxItems } from "@/lib/schema/inbox.schema";
 
 import { create } from "@/lib/storage";
-import { AdoInstance } from "./schema/instance.schema";
+import { type AdoInstance, AdoInstanceSchema, AdoConfigSchema } from "./schema/instance.schema";
 import InboxCache from "@/lib/utils/inbox-cache";
 
 export function createAdoDataSource(instanceId?: string): InboxDataSource {
-  const storage = create<{ instances: AdoInstance[] }>("ado-config", "1.0");
+  const storage = create("ado-config", "1.0", AdoConfigSchema);
   const dataSourceName = "ado";
   return {
     id: dataSourceName,
@@ -36,7 +36,7 @@ export function createAdoDataSource(instanceId?: string): InboxDataSource {
       }
 
       // Parse instances through schema to apply defaults (like instanceType)
-      const parsedInstances = config.instances.map(inst => AdoInstance.parse(inst));
+      const parsedInstances = config.instances.map(inst => AdoInstanceSchema.parse(inst));
 
       // Filter for specific instance if instanceId is provided
       let filteredConfig = { ...config, instances: parsedInstances };

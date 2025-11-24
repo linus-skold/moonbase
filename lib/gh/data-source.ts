@@ -3,11 +3,11 @@ import type { InboxDataSource } from '@/components/inbox/InboxProvider';
 import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
 
 import {create} from '@/lib/storage';
-import { GhInstance } from './schema/instance.schema';
+import { type GhInstance, GhInstanceSchema, GhConfigSchema } from './schema/instance.schema';
 import InboxCache from '@/lib/utils/inbox-cache';
 
 export function createGhDataSource(instanceId?: string): InboxDataSource {
-  const storage = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+  const storage = create('gh-config', '1.0', GhConfigSchema);
   const dataSourceName = 'github';
   
   return {
@@ -38,7 +38,7 @@ export function createGhDataSource(instanceId?: string): InboxDataSource {
       }
 
       // Parse instances through schema to apply defaults (like instanceType)
-      const parsedInstances = config.instances.map(inst => GhInstance.parse(inst));
+      const parsedInstances = config.instances.map(inst => GhInstanceSchema.parse(inst));
 
       // Filter for specific instance if instanceId is provided
       let filteredConfig = { ...config, instances: parsedInstances };
