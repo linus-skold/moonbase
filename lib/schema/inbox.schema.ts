@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { AdoInstance } from '../ado/schema/instance.schema';
-import { GhInstance } from '../gh/schema/instance.schema';
+import { AdoInstanceSchema } from '../ado/schema/instance.schema';
+import { GhInstanceSchema } from '../gh/schema/instance.schema';
 import { WorkItemKindSchema } from './workItemKind.schema';
 
 
@@ -24,7 +24,7 @@ export const InboxItemSchema = z.object({
     id: z.string(),
     name: z.string(),
   }).optional(),
-  instance: z.union([AdoInstance, GhInstance]),
+  instance: z.union([AdoInstanceSchema, GhInstanceSchema]),
   metadata: z.record(z.string(), z.any()).optional(),
   priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   assignedTo: z.object({
@@ -32,6 +32,7 @@ export const InboxItemSchema = z.object({
     imageUrl: z.string().optional(),
   }).optional(),
   workItemKind: WorkItemKindSchema.optional(),
+  isNew: z.boolean().optional().default(false),
 });
 export type InboxItem = z.infer<typeof InboxItemSchema>;
 
@@ -42,7 +43,7 @@ export const GroupedInboxItemsSchema = z.record(
       id: z.string(),
       name: z.string(),
     }),
-    instance: z.union([AdoInstance, GhInstance]),
+    instance: z.union([AdoInstanceSchema, GhInstanceSchema]),
     items: z.array(InboxItemSchema),
     repositories: z.record(
       z.string(),
