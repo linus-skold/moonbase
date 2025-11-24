@@ -19,7 +19,7 @@ export default function Home() {
 
   return (
     <InboxProvider dataSources={dataSources}>
-      {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime }) => (
+      {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead }) => (
         <InboxLayout
           title="Home"
           description="Your unified inbox across all integrations"
@@ -28,6 +28,9 @@ export default function Home() {
           error={error}
           onRefresh={() => refresh(true)}
           lastRefreshTime={lastRefreshTime}
+          newItemsCount={newItemsCount}
+          markAllAsRead={markAllAsRead}
+          markAsRead={markAsRead}
           emptyStateConfig={
             !isConfigured
               ? {

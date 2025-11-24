@@ -5,27 +5,46 @@ import { ItemAssignment } from "./inbox-card/ItemAssignment";
 import { ItemIcon } from "./inbox-card/ItemIcon";
 import { ItemStatusIndicator } from "./inbox-card/ItemStatusIndicator";
 import { DateTime } from "luxon";
+import React from "react";
+import { useInboxContext } from "@/components/inbox/InboxContext";
 
 interface InboxItemCardProps {
   item: InboxItem;
 }
 
 export function InboxItemCard({ item }: InboxItemCardProps) {
+  const inboxContext = useInboxContext();
+  
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Mark as read immediately when clicked
+    if (item.isNew && inboxContext?.markAsRead) {
+      inboxContext.markAsRead(item.id);
+    }
+    // The link will open in a new tab, so we don't need to prevent default
+  };
+
   return (
     <a
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       className="block transition-all hover:scale-[1.01]"
     >
-      <Card className="p-4 hover:shadow-md transition-shadow">
+      <Card className={`p-4 hover:shadow-md transition-shadow ${item.isNew ? 'ring-2 ring-primary/50 bg-primary/5' : ''}`}>
         <div className="flex items-start gap-3">
           <ItemIcon type={item.type} priority={item.priority} workItemKind={item.workItemKind} />
 
           <div className="flex-1 min-w-0">
             
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium text-sm truncate flex-1">
+              <h3 className="font-medium text-sm truncate flex-1 flex items-center gap-2">
+                {item.isNew && (
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                )}
                 {item.title}
                 <ExternalLink className="inline-block ml-1 h-3 w-3 text-muted-foreground align-text-top" />
               </h3>

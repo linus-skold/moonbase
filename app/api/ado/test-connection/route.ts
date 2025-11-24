@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Failed to retrieve user ID' }, { status: 401 });
     }
   } catch (error) {
-    console.error('Error testing ADO connection:', error);
     return NextResponse.json(
       { success: false, error: 'Connection failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

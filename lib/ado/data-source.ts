@@ -22,7 +22,6 @@ export function createAdoDataSource(instanceId?: string): InboxDataSource {
       if (!options?.forceRefresh) {
         const cachedData = InboxCache.getCachedItems(dataSourceName, instanceId);
         if (cachedData) {
-          console.log("Using cached ADO inbox data");
           return cachedData;
         }
       } else {

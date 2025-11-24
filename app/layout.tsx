@@ -11,6 +11,7 @@ import { BannerTitle } from "@/components/ui/shadcn-io/banner";
 import { IntegrationProvider } from "@/components/integration/IntegrationProvider";
 import { integrations } from "@/components/integration/integrations";
 import { CustomToaster } from "@/components/ui/custom-toaster";
+import { NewItemsProvider } from "@/components/inbox/NewItemsContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,38 +45,40 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <IntegrationProvider initialIntegrations={integrations}>
-            <div className="flex flex-col min-h-screen">
-              <BannerContainer>
-                <SystemNotificationBanner variant="github" canClose={false}>
-                  <BannerTitle className="text-center">
-                    <span className="font-bold">Moonbase </span> is currently
-                    under <span className="font-bold">development</span>. Please
-                    report any issues on{" "}
-                    <a
-                      href="https://github.com/linus-skold/moonbase/issues"
-                      className="underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      GitHub
-                    </a>
-                    .
-                  </BannerTitle>
-                </SystemNotificationBanner>
-                <VersionBanner />
-              </BannerContainer>
+            <NewItemsProvider>
+              <div className="flex flex-col h-screen overflow-hidden">
+                <BannerContainer>
+                  <SystemNotificationBanner variant="github" canClose={false}>
+                    <BannerTitle className="text-center">
+                      <span className="font-bold">Moonbase </span> is currently
+                      under <span className="font-bold">development</span>. Please
+                      report any issues on{" "}
+                      <a
+                        href="https://github.com/linus-skold/moonbase/issues"
+                        className="underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        GitHub
+                      </a>
+                      .
+                    </BannerTitle>
+                  </SystemNotificationBanner>
+                  <VersionBanner />
+                </BannerContainer>
 
-              <div className="flex flex-1 overflow-x-hidden">
-                <SidebarProvider>
-                  <AppSidebar />
+                <div className="flex flex-1 overflow-hidden">
+                  <SidebarProvider>
+                    <AppSidebar />
 
-                  <main className="flex-1 min-w-0 overflow-x-hidden">
-                    <SidebarTrigger />
-                    {children}
-                  </main>
-                </SidebarProvider>
+                    <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+                      <SidebarTrigger />
+                      {children}
+                    </main>
+                  </SidebarProvider>
+                </div>
               </div>
-            </div>
+            </NewItemsProvider>
           </IntegrationProvider>
         </ThemeProvider>
         <CustomToaster position="top-center" />

@@ -289,9 +289,7 @@ export const ColorPickerEyeDropper = ({
       setSaturation(s);
       setLightness(l);
       setAlpha(100);
-    } catch (error) {
-      console.error('EyeDropper failed:', error);
-    }
+    } 
   };
 
   return (

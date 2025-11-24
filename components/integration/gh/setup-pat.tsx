@@ -129,7 +129,6 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
 
       if(!valid.success) {
         if (onComplete) onComplete(false);
-        console.error("Invalid GitHub instance data:", valid.error);
         return;
       }
 

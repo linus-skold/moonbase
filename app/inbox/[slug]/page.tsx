@@ -1,14 +1,15 @@
 'use client';
 
-import React from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { InboxLayout } from '@/components/inbox/InboxLayout';
 import { InboxProvider } from '@/components/inbox/InboxProvider';
 import { createAdoDataSource } from '@/lib/ado/data-source';
 import { createGhDataSource } from '@/lib/gh/data-source';
 import { Settings } from 'lucide-react';
 import { create } from '@/lib/storage';
-import { AdoInstance } from '@/lib/ado/schema/instance.schema';
-import { GhInstance } from '@/lib/gh/schema/instance.schema';
+import { AdoConfigSchema } from '@/lib/ado/schema/instance.schema';
+import { GhConfigSchema } from '@/lib/gh/schema/instance.schema';
+import { InstancesEnum } from '@/lib/schema/instances.schema';
 
 interface PageProps {
   params: Promise<{
@@ -17,16 +18,16 @@ interface PageProps {
 }
 
 export default function Page({ params }: PageProps) {
-  const storageAdo = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
-  const storageGh = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+  const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
+  const storageGh = create('gh-config', '1.0', GhConfigSchema);
   
-  const { slug } = React.use(params);
+  const { slug } = use(params);
 
   // Determine which data source to use based on instance ID
-  const [instanceName, setInstanceName] = React.useState<string | null>(null);
-  const [instanceType, setInstanceType] = React.useState<'ado' | 'github' | null>(null);
+  const [instanceName, setInstanceName] = useState<string | null>(null);
+  const [instanceType, setInstanceType] = useState<InstancesEnum | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Check ADO config first
     const adoConfig = storageAdo.load();
     const adoInstance = adoConfig?.instances?.find(inst => inst.id === slug);
@@ -51,7 +52,7 @@ export default function Page({ params }: PageProps) {
     setInstanceType(null);
   }, [slug]);
   
-  const dataSource = React.useMemo(() => {
+  const dataSource = useMemo(() => {
     if (instanceType === 'ado') {
       return createAdoDataSource(slug);
     } else if (instanceType === 'github') {
@@ -61,8 +62,8 @@ export default function Page({ params }: PageProps) {
   }, [slug, instanceType]);
   
   return (
-    <InboxProvider dataSources={[dataSource]}>
-      {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime }) => (
+    <InboxProvider dataSources={[dataSource]} instanceId={slug}>
+      {({ groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead }) => (
         
         <InboxLayout
           title={instanceName ? `${instanceName} Inbox` : 'Inbox'}
@@ -71,6 +72,9 @@ export default function Page({ params }: PageProps) {
           error={error}
           onRefresh={() => refresh(true)}
           lastRefreshTime={lastRefreshTime}
+          newItemsCount={newItemsCount}
+          markAllAsRead={markAllAsRead}
+          markAsRead={markAsRead}
           emptyStateConfig={
             !isConfigured
               ? {

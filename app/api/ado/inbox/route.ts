@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(groupedItems);
   } catch (error) {
-    console.error('Error fetching ADO inbox items:', error);
     return NextResponse.json(
       { error: 'Failed to fetch inbox items', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

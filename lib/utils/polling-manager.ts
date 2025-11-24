@@ -34,7 +34,6 @@ function createPollingManager(config: PollingConfig = {}): PollingManager {
     try {
       lastPollTimes.set(source.id, Date.now());
       await source.poll();
-      console.log(`Polled ${source.id} at ${new Date().toISOString()}`);
     } catch (error) {
       console.error(`Error polling ${source.id}:`, error);
     }

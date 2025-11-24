@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import type { GroupedInboxItems } from "@/lib/schema/inbox.schema";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import type { GroupedInboxItems, InboxItem } from "@/lib/schema/inbox.schema";
+import { getPollingManager } from "@/lib/utils/polling-manager";
+import { loadSeenItems, markItemsAsSeen } from "@/lib/utils/new-items-tracker";
+import { settingsStorage } from "@/lib/utils/settings-storage";
 
 export interface InboxDataSource {
   id: string;
@@ -21,25 +24,87 @@ export interface InboxProviderProps {
     isConfigured: boolean;
     configUrl?: string;
     lastRefreshTime: Date | null;
+    newItemsCount: number;
+    markAsRead: (itemId: string) => void;
+    markAllAsRead: () => void;
   }) => React.ReactNode;
   dataSources: InboxDataSource[];
   autoFetch?: boolean;
+  enablePolling?: boolean;
+  instanceId?: string;
 }
 
 export function InboxProvider({
   children,
   dataSources,
   autoFetch = true,
+  enablePolling = true,
+  instanceId,
 }: InboxProviderProps) {
   const [mounted, setMounted] = useState(false);
   const [groupedItems, setGroupedItems] = useState<GroupedInboxItems>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [newItemsCount, setNewItemsCount] = useState(0);
 
   // Only run on client side
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Mark new items in the fetched data
+  const markNewItems = useCallback((items: GroupedInboxItems): GroupedInboxItems => {
+    const markedItems: GroupedInboxItems = {};
+    
+    dataSources.forEach((source) => {
+      const seenItems = loadSeenItems(source.id, instanceId);
+      
+      Object.entries(items).forEach(([key, group]) => {
+        const markedGroup = {
+          ...group,
+          items: group.items.map((item: InboxItem) => ({
+            ...item,
+            isNew: !seenItems.has(item.id),
+          })),
+        };
+        
+        if (markedGroup.repositories) {
+          const markedRepos: typeof markedGroup.repositories = {};
+          Object.entries(markedGroup.repositories).forEach(([repoKey, repo]) => {
+            markedRepos[repoKey] = {
+              ...repo,
+              items: repo.items.map((item: InboxItem) => ({
+                ...item,
+                isNew: !seenItems.has(item.id),
+              })),
+            };
+          });
+          markedGroup.repositories = markedRepos;
+        }
+        
+        markedItems[key] = markedGroup;
+      });
+    });
+    
+    return markedItems;
+  }, [dataSources, instanceId]);
+
+  // Count new items
+  const countNewItems = useCallback((items: GroupedInboxItems): number => {
+    let count = 0;
+    
+    Object.values(items).forEach((group) => {
+      count += group.items.filter((item: InboxItem) => item.isNew).length;
+      
+      if (group.repositories) {
+        Object.values(group.repositories).forEach((repo) => {
+          count += repo.items.filter((item: InboxItem) => item.isNew).length;
+        });
+      }
+    });
+    
+    return count;
   }, []);
 
   const refresh = useCallback(
@@ -71,29 +136,234 @@ export function InboxProvider({
           }
         });
 
-        setGroupedItems(allItems);
+        const markedItems = markNewItems(allItems);
+        setGroupedItems(markedItems);
+        setNewItemsCount(countNewItems(markedItems));
         setLastRefreshTime(new Date());
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch inbox items"
         );
-        console.error("Error fetching inbox items:", err);
       } finally {
         setIsLoading(false);
       }
     },
-    [dataSources]
+    [dataSources, markNewItems, countNewItems]
   );
 
   // Auto-fetch on mount and when data sources change (only on client)
-  React.useEffect(() => {
+  useEffect(() => {
     if (mounted && autoFetch && dataSources.length > 0) {
       refresh();
     }
   }, [mounted, autoFetch, dataSources, refresh]);
 
+  // Set up background polling
+  useEffect(() => {
+    if (!mounted || !enablePolling || dataSources.length === 0) {
+      return;
+    }
+
+    // Check user settings for polling preference
+    const settings = settingsStorage.load();
+    if (!settings.pollingEnabled) {
+      return;
+    }
+
+    const pollingManager = getPollingManager();
+    
+    // Create a unique ID for this inbox provider instance
+    const providerPollId = instanceId 
+      ? `inbox-provider-${instanceId}` 
+      : `inbox-provider-${dataSources.map(ds => ds.id).join('-')}`;
+
+    // Register a single poll that fetches all data sources together
+    pollingManager.registerSource({
+      id: providerPollId,
+      poll: async () => {
+        // Poll silently in the background without showing loading state
+        try {
+          // Check user settings for auto-refresh behavior
+          const settings = settingsStorage.load();
+          
+          // Fetch from all data sources with forceRefresh to get fresh data
+          // This bypasses the cache to update it with new data from the API
+          const allItems: GroupedInboxItems = {};
+          
+          const results = await Promise.allSettled(
+            dataSources.map((ds) => ds.fetchInboxItems({ forceRefresh: true }))
+          );
+
+          results.forEach((result, index) => {
+            if (result.status === "fulfilled") {
+              Object.entries(result.value).forEach(([key, value]) => {
+                const uniqueKey = `${dataSources[index].id}-${key}`;
+                allItems[uniqueKey] = value;
+              });
+            } else {
+              console.error(
+                `Background poll failed for ${dataSources[index].name}:`,
+                result.reason
+              );
+            }
+          });
+          
+          const markedItems = markNewItems(allItems);
+          const newCount = countNewItems(markedItems);
+          
+          // Check if there are actual changes (compare item IDs)
+          const currentItemIds = new Set<string>();
+          Object.values(groupedItems).forEach((group) => {
+            group.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
+            if (group.repositories) {
+              Object.values(group.repositories).forEach((repo) => {
+                repo.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
+              });
+            }
+          });
+          
+          const newItemIds = new Set<string>();
+          Object.values(markedItems).forEach((group) => {
+            group.items.forEach((item: InboxItem) => newItemIds.add(item.id));
+            if (group.repositories) {
+              Object.values(group.repositories).forEach((repo) => {
+                repo.items.forEach((item: InboxItem) => newItemIds.add(item.id));
+              });
+            }
+          });
+          
+          // Check if there are differences in the item sets
+          const hasChanges = currentItemIds.size !== newItemIds.size || 
+            Array.from(newItemIds).some(id => !currentItemIds.has(id));
+          
+          // Only update the UI if auto-refresh is enabled
+          // Otherwise, just update the cache (which was done by fetchInboxItems)
+          if (settings.autoRefreshOnPoll) {
+            setGroupedItems(markedItems);
+            setNewItemsCount(newCount);
+            setLastRefreshTime(new Date());
+          } else if (hasChanges) {
+            // Only dispatch event if there are actual changes
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('inbox-data-available'));
+            }
+          }
+        } catch (err) {
+          console.error(`Background poll failed:`, err);
+        }
+      },
+    });
+
+    // Start polling
+    pollingManager.startPolling();
+
+    // Cleanup: unregister the poll when component unmounts
+    return () => {
+      pollingManager.unregisterSource(providerPollId);
+    };
+  }, [mounted, enablePolling, dataSources, instanceId, markNewItems, countNewItems]);
+
+  // Mark an item as read
+  const markAsRead = useCallback((itemId: string) => {
+    dataSources.forEach((source) => {
+      const seenItems = loadSeenItems(source.id, instanceId);
+      seenItems.add(itemId);
+      markItemsAsSeen([itemId], source.id, instanceId);
+    });
+
+    // Update the state to reflect the change using setState callback to get fresh state
+    setGroupedItems((currentItems) => {
+      const updatedItems: GroupedInboxItems = {};
+      Object.entries(currentItems).forEach(([key, group]) => {
+        const updatedGroup = {
+          ...group,
+          items: group.items.map((item: InboxItem) => 
+            item.id === itemId ? { ...item, isNew: false } : item
+          ),
+        };
+        
+        if (updatedGroup.repositories) {
+          const updatedRepos: typeof updatedGroup.repositories = {};
+          Object.entries(updatedGroup.repositories).forEach(([repoKey, repo]) => {
+            updatedRepos[repoKey] = {
+              ...repo,
+              items: repo.items.map((item: InboxItem) =>
+                item.id === itemId ? { ...item, isNew: false } : item
+              ),
+            };
+          });
+          updatedGroup.repositories = updatedRepos;
+        }
+        
+        updatedItems[key] = updatedGroup;
+      });
+      
+      const newCount = countNewItems(updatedItems);
+      setNewItemsCount(newCount);
+      
+      return updatedItems;
+    });
+    
+    // Dispatch custom event to update sidebar counts
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('inbox-items-read'));
+    }
+  }, [dataSources, instanceId, countNewItems]);
+
+  // Mark all items as read
+  const markAllAsRead = useCallback(() => {
+    setGroupedItems((currentItems) => {
+      const allItemIds: string[] = [];
+      
+      Object.values(currentItems).forEach((group) => {
+        allItemIds.push(...group.items.map((item: InboxItem) => item.id));
+        
+        if (group.repositories) {
+          Object.values(group.repositories).forEach((repo) => {
+            allItemIds.push(...repo.items.map((item: InboxItem) => item.id));
+          });
+        }
+      });
+
+      dataSources.forEach((source) => {
+        markItemsAsSeen(allItemIds, source.id, instanceId);
+      });
+
+      // Update all items to not be new
+      const updatedItems: GroupedInboxItems = {};
+      Object.entries(currentItems).forEach(([key, group]) => {
+        const updatedGroup = {
+          ...group,
+          items: group.items.map((item: InboxItem) => ({ ...item, isNew: false })),
+        };
+        
+        if (updatedGroup.repositories) {
+          const updatedRepos: typeof updatedGroup.repositories = {};
+          Object.entries(updatedGroup.repositories).forEach(([repoKey, repo]) => {
+            updatedRepos[repoKey] = {
+              ...repo,
+              items: repo.items.map((item: InboxItem) => ({ ...item, isNew: false })),
+            };
+          });
+          updatedGroup.repositories = updatedRepos;
+        }
+        
+        updatedItems[key] = updatedGroup;
+      });
+      
+      setNewItemsCount(0);
+      
+      return updatedItems;
+    });
+    
+    // Dispatch custom event to update sidebar counts
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('inbox-items-read'));
+    }
+  }, [dataSources, instanceId]);
+
   // Check if at least one data source is configured (only on client)
-  const configStatus = React.useMemo(() => {
+  const configStatus = useMemo(() => {
     if (!mounted) {
       return { isConfigured: false, configUrl: undefined };
     }
@@ -118,6 +388,9 @@ export function InboxProvider({
         isConfigured: configStatus.isConfigured,
         configUrl: configStatus.configUrl,
         lastRefreshTime,
+        newItemsCount,
+        markAsRead,
+        markAllAsRead,
       })}
     </>
   );

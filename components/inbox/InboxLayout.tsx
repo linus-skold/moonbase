@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState , useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input'
@@ -25,6 +25,9 @@ export interface InboxLayoutProps {
   onRefresh?: () => Promise<void> | void;
   settingsUrl?: string;
   lastRefreshTime?: Date | null;
+  newItemsCount?: number;
+  markAllAsRead?: () => void;
+  markAsRead?: (itemId: string) => void;
   emptyStateConfig?: {
     icon?: React.ReactNode;
     title: string;
@@ -42,13 +45,36 @@ export function InboxLayout({
   error,
   onRefresh,
   lastRefreshTime,
+  newItemsCount = 0,
+  markAllAsRead,
+  markAsRead,
   emptyStateConfig,
 }: InboxLayoutProps) {
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [sortBy, setSortBy] = React.useState<SortOption>('date-desc');
-  const [filterBy, setFilterBy] = React.useState<FilterOption>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [showNewDataBanner, setShowNewDataBanner] = useState(false);
 
-  const filteredItems = React.useMemo(() => {
+  // Listen for new data available events
+  useEffect(() => {
+    const handleNewData = () => {
+      setShowNewDataBanner(true);
+    };
+
+    window.addEventListener('inbox-data-available', handleNewData);
+    return () => {
+      window.removeEventListener('inbox-data-available', handleNewData);
+    };
+  }, []);
+
+  const handleRefreshClick = async () => {
+    setShowNewDataBanner(false);
+    if (onRefresh) {
+      await onRefresh();
+    }
+  };
+
+  const filteredItems = useMemo(() => {
     // Flatten all items from grouped structure
     const allItems: InboxItem[] = [];
     Object.values(groupedItems).forEach((group) => {
@@ -92,7 +118,7 @@ export function InboxLayout({
   }, [groupedItems, searchQuery, filterBy, sortBy]);
 
   // Get item counts for all items (before filtering)
-  const allItems = React.useMemo(() => {
+  const allItems = useMemo(() => {
     const items: InboxItem[] = [];
     Object.values(groupedItems).forEach((group) => {
       items.push(...group.items);
@@ -100,7 +126,7 @@ export function InboxLayout({
     return items;
   }, [groupedItems]);
 
-  const itemCounts = React.useMemo(() => getItemCounts(allItems), [allItems]);
+  const itemCounts = useMemo(() => getItemCounts(allItems), [allItems]);
 
   const totalItems = Object.values(groupedItems).reduce(
     (sum, group) => sum + group.items.length,
@@ -112,6 +138,33 @@ export function InboxLayout({
 
   return (
     <div className="container mx-auto p-6" suppressHydrationWarning>
+      {showNewDataBanner && (
+        <Card className="p-4 mb-4 bg-blue-500/10 border-blue-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Inbox className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-medium">New items are available</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleRefreshClick}
+                size="sm"
+                variant="default"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh to see updates
+              </Button>
+              <Button
+                onClick={() => setShowNewDataBanner(false)}
+                size="sm"
+                variant="ghost"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -132,6 +185,15 @@ export function InboxLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            {newItemsCount > 0 && markAllAsRead && (
+              <Button
+                onClick={markAllAsRead}
+                variant="secondary"
+                size="sm"
+              >
+                Mark All as Read ({newItemsCount})
+              </Button>
+            )}
             {lastRefreshTime && (
               <span className="text-xs text-muted-foreground">
                 Last updated: {lastRefreshTime.toLocaleTimeString()}
@@ -205,7 +267,7 @@ export function InboxLayout({
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <GroupedInboxView groupedItems={filteredItems} />
+        <GroupedInboxView groupedItems={filteredItems} markAsRead={markAsRead} />
       )}
     </div>
   );

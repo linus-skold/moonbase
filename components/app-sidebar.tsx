@@ -1,4 +1,6 @@
 "use client";
+import { useState, useEffect } from "react";
+
 import { Home, Settings, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +18,6 @@ import {
 } from "@/components/ui/sidebar";
 import { CustomSidebar } from "@/components/sidebar/custom-sidebar";
 import { VscGithub, VscAzureDevops } from "react-icons/vsc";
-import React from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -24,8 +25,9 @@ import {
 } from "@/components/ui/collapsible";
 
 import { create } from "@/lib/storage";
-import { AdoInstance } from "@/lib/ado/schema/instance.schema";
-import { GhInstance } from "@/lib/gh/schema/instance.schema";
+import { AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
+import { GhConfigSchema } from "@/lib/gh/schema/instance.schema";
+import { useNewItems } from "@/components/inbox/NewItemsContext";
 
 // Menu items.
 const items = [
@@ -47,15 +49,17 @@ interface AppSidebarProps {
 };
 
 export function AppSidebar(props?: AppSidebarProps) {
-  const storageAdo = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
-  const storageGh = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+  const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
+  const storageGh = create('gh-config', '1.0', GhConfigSchema);
 
-  const [adoInstances, setAdoInstances] = React.useState<any[]>([]);
-  const [ghInstances, setGhInstances] = React.useState<any[]>([]);
-  const [isAdoOpen, setIsAdoOpen] = React.useState(true);
-  const [isGhOpen, setIsGhOpen] = React.useState(true);
+  const [adoInstances, setAdoInstances] = useState<any[]>([]);
+  const [ghInstances, setGhInstances] = useState<any[]>([]);
+  const [isAdoOpen, setIsAdoOpen] = useState(true);
+  const [isGhOpen, setIsGhOpen] = useState(true);
+  
+  const { counts } = useNewItems();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const adoConfig = storageAdo.load();
     setAdoInstances(adoConfig?.instances || []);
     
@@ -107,8 +111,13 @@ export function AppSidebar(props?: AppSidebarProps) {
                         {adoInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
-                              <a href={`/inbox/${instance.id}`}>
+                              <a href={`/inbox/${instance.id}`} className="relative pr-8">
                                 <span>{instance.name}</span>
+                                {counts[instance.id] > 0 && (
+                                  <span className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground animate-pulse">
+                                    {counts[instance.id]}
+                                  </span>
+                                )}
                               </a>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -138,8 +147,13 @@ export function AppSidebar(props?: AppSidebarProps) {
                         {ghInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
-                              <a href={`/inbox/${instance.id}`}>
+                              <a href={`/inbox/${instance.id}`} className="relative pr-8">
                                 <span>{instance.name}</span>
+                                {counts[instance.id] > 0 && (
+                                  <span className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground animate-pulse">
+                                    {counts[instance.id]}
+                                  </span>
+                                )}
                               </a>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>

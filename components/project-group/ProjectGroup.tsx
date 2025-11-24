@@ -36,6 +36,9 @@ export const ProjectCardComponent = ({group, instanceType }: ProjectCardComponen
   const [expanded, setExpanded] = React.useState(false);
 
   const IntegrationIcon = getInstanceIcon(instanceType || '');
+  
+  // Count new items
+  const newItemsCount = group.items.filter(item => item.isNew).length;
 
   return (
     <Collapsible open={expanded} onOpenChange={setExpanded} className="">
@@ -43,7 +46,14 @@ export const ProjectCardComponent = ({group, instanceType }: ProjectCardComponen
         <ChevronDown className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ${expanded ? '' : '-rotate-90'}`} />
         <IntegrationIcon className={`w-4 h-4 flex-shrink-0 ${integrationColor[instanceType || ''] || ''}`} />
         <div className="flex-1 min-w-0">
-          <h2 className="font-semibold truncate">{group.project.name}</h2>
+          <h2 className="font-semibold truncate flex items-center gap-2">
+            {group.project.name}
+            {newItemsCount > 0 && (
+              <span className="text-xs px-1.5 py-0.5 bg-primary text-primary-foreground rounded-md animate-pulse">
+                new
+              </span>
+            )}
+          </h2>
           <p className="text-xs text-muted-foreground">{group.instance.name}</p>
         </div>
         <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium">
