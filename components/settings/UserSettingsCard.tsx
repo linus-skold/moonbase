@@ -42,7 +42,6 @@ export function UserSettingsCard() {
       </CardHeader>
       <CardContent className="space-y-6">
 
-        <Label className="text-lg font-semibold">Inbox Settings</Label>
 
         <div className="flex items-center justify-between space-x-2">
           <div className="space-y-0.5 flex-1">
