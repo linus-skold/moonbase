@@ -15,7 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
 import { create } from "@/lib/storage";
-import { GhInstance } from "@/lib/gh/schema/instance.schema";
+import { type GhInstance, type GhConfig, GhInstanceSchema, GhConfigSchema } from "@/lib/gh/schema/instance.schema";
 import { fetchAuthenticatedUser } from "@/lib/integrations/gh/api";
 import { WarningDialog } from "@/components/warning/WarningDialog";
 
@@ -26,7 +26,7 @@ interface SetupPatProps {
 }
 
 export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
-  const storage = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+  const storage = create('gh-config', '1.0', GhConfigSchema);
   const [showTokens, setShowTokens] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -38,6 +38,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   const [showWarning, setShowWarning] = React.useState(false);
 
   const [instance, setInstance] = React.useState<GhInstance>({
+    instanceType: 'gh' as const,
     id: `gh-instance-${Date.now()}`,
     name: "",
     personalAccessToken: "",
@@ -124,7 +125,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       const config = storage.load();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
-      const valid = GhInstance.safeParse(instance);
+      const valid = GhInstanceSchema.safeParse(instance);
 
       if(!valid.success) {
         if (onComplete) onComplete(false);
@@ -140,8 +141,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       const updatedConfig = { 
         ...config, 
         instances: [...instances, newInstance],
-        environments: config?.environments ?? [],
-        pinnedRepositories: config?.pinnedRepositories ?? [],
+        // environments and pinnedRepositories removed - not part of GhConfig schema
       };
       storage.save(updatedConfig);
       if (onComplete) onComplete(true);

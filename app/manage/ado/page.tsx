@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import React from 'react';
 import { create } from '@/lib/storage'
-import { AdoInstance } from '@/lib/ado/schema/instance.schema';
+import { type AdoInstance, type AdoConfig, AdoInstanceSchema, AdoConfigSchema } from '@/lib/ado/schema/instance.schema';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 
 export default function Page() {
-  const storage = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
+  const storage = create('ado-config', '1.0', AdoConfigSchema);
   const searchParams = useSearchParams();
   const router = useRouter();
   const instanceId = searchParams.get('instanceId');

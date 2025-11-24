@@ -1,4 +1,4 @@
-import { GhInstance } from "@/lib/gh/schema/instance.schema";
+import { type GhInstance } from "@/lib/gh/schema/instance.schema";
 import { ManageCard } from "../base/manage-card-base";
 import { useRouter } from "next/navigation";
 

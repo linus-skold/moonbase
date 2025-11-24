@@ -1,6 +1,5 @@
-import { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { type AdoInstance } from "@/lib/ado/schema/instance.schema";
 import { ManageCard } from "../base/manage-card-base";
-import { Integration } from "../IntegrationProvider";
 import { useRouter } from "next/navigation";
 
 type AdoManageCardProps = {

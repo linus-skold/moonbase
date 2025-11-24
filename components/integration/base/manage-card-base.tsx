@@ -6,8 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AdoInstance } from "@/lib/ado/schema/instance.schema";
-import { GhInstance } from "@/lib/gh/schema/instance.schema";
+import { type AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { type GhInstance } from "@/lib/gh/schema/instance.schema";
 import { VscAzureDevops } from "react-icons/vsc";
 import { CalendarIcon, Trash2, Power, PowerOff } from "lucide-react";
 import {
@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
-import { create as createAdoStorage } from "@/lib/storage";
+import { create } from "@/lib/storage";
+import { AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
+import { GhConfigSchema } from "@/lib/gh/schema/instance.schema";
 
 type InstanceType = AdoInstance | GhInstance;
 
@@ -68,8 +70,8 @@ function formatExpirationText(expiresAt: Date | number | undefined, daysRemainin
 
 
 export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCardProps) => {
-  const storageAdo = createAdoStorage<{ instances: AdoInstance[] }>('ado-config', '1.0');
-  const storageGh = createAdoStorage<{ instances: GhInstance[] }>('gh-config', '1.0');
+  const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
+  const storageGh = create('gh-config', '1.0', GhConfigSchema);
 
 
   const daysRemaining = getDaysUntilExpiration(instance.expiresAt);

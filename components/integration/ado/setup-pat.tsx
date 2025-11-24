@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import React from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
-import { AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { type AdoInstance, type AdoConfig, AdoInstanceSchema, AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
 import { fetchAuthenticatedUserId } from "@/lib/integrations/ado/api";
 
 import { create } from "@/lib/storage";
@@ -28,18 +28,17 @@ interface SetupPatProps {
 }
 
 export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
-  const storage = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
-  const [showTokens, setShowTokens] = React.useState<Record<string, boolean>>(
+  const storage = create('ado-config', '1.0', AdoConfigSchema);
+  const [showTokens, setShowTokens] = useState<Record<string, boolean>>(
     {}
   );
   const [testConnectionLoading, setTestConnectionLoading] =
-    React.useState(false);
-  const [connectionSuccessful, setConnectionSuccessful] = React.useState<
-    boolean | null
-  >(null);
-  const [showWarning, setShowWarning] = React.useState(false);
+    useState(false);
+  const [connectionSuccessful, setConnectionSuccessful] = useState<boolean | null>(null);
+  const [showWarning, setShowWarning] = useState(false);
 
-  const [instance, setInstance] = React.useState<AdoInstance>({
+  const [instance, setInstance] = useState<AdoInstance>({
+    instanceType: 'ado' as const,
     id: `ado-instance-${Date.now()}`,
     name: "",
     organization: undefined,
@@ -135,7 +134,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       const config = storage.load();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
-      const valid = AdoInstance.safeParse(instance);
+      const valid = AdoInstanceSchema.safeParse(instance);
 
       if(!valid.success) {
         if (onComplete) onComplete(false);
@@ -156,7 +155,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       const updatedConfig = { 
         ...config, 
         instances: [...instances, newInstance],
-        environments: config?.environments ?? [], // Ensure environments is always an array
+        // environments removed - not part of AdoConfig schema
       };
       storage.save(updatedConfig);
       if (onComplete) onComplete(true);
