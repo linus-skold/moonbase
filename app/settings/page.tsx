@@ -6,13 +6,14 @@ import React from "react";
 import { useIntegrations } from "@/components/integration/IntegrationProvider";
 
 import { create } from "@/lib/storage";
-import { AdoInstance } from "@/lib/ado/schema/instance.schema";
-import { GhInstance } from "@/lib/gh/schema/instance.schema";
+import { type AdoInstance, type AdoConfig, AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
+import { type GhInstance, type GhConfig, GhConfigSchema } from "@/lib/gh/schema/instance.schema";
+import { UserSettingsCard } from "@/components/settings/UserSettingsCard";
 
 export default function SettingsPage() {
 
-  const storageAdo = create<{ instances: AdoInstance[] }>('ado-config', '1.0');
-  const storageGh = create<{ instances: GhInstance[] }>('gh-config', '1.0');
+  const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
+  const storageGh = create('gh-config', '1.0', GhConfigSchema);
 
   // Map icon string to component
   const iconMap: Record<string, React.ComponentType<any>> = {
@@ -85,17 +86,24 @@ export default function SettingsPage() {
           Configure your integrations and preferences here.
         </p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {integrations.map((integration) => {
-          const CardComponent = integration.addIntegrationComponent;
-          return (
-            <CardComponent 
-              key={integration.id} 
-              integration={integration}
-              onInstanceAdded={() => setRefreshKey(prev => prev + 1)}
-            />
-          );
-        })}
+      <div className="space-y-6">
+        <UserSettingsCard />
+        
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Add Integrations</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {integrations.map((integration) => {
+              const CardComponent = integration.addIntegrationComponent;
+              return (
+                <CardComponent 
+                  key={integration.id} 
+                  integration={integration}
+                  onInstanceAdded={() => setRefreshKey(prev => prev + 1)}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">
