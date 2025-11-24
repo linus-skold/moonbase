@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { StatusMapping } from '../../schema/statusMapping.schema';
 
-export const AdoInstance = z.object({
+export const AdoInstanceSchema = z.object({
   instanceType: z.literal('ado').default('ado'),
   id: z.string(),
   name: z.string(),
@@ -13,4 +13,12 @@ export const AdoInstance = z.object({
   statusMappings: StatusMapping.array().optional(),
   expiresAt: z.coerce.date(),
 });
-export type AdoInstance = z.infer<typeof AdoInstance>;
+export type AdoInstance = z.infer<typeof AdoInstanceSchema>;
+
+export const AdoConfigSchema = z.object({
+  instances: AdoInstanceSchema.array(),
+});
+export type AdoConfig = z.infer<typeof AdoConfigSchema>;
+
+export const AdoInstanceArraySchema = z.array(AdoInstanceSchema);
+export type AdoInstanceArray = z.infer<typeof AdoInstanceArraySchema>;
