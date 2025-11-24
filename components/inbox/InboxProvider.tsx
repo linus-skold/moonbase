@@ -57,38 +57,38 @@ export function InboxProvider({
   const markNewItems = useCallback((items: GroupedInboxItems): GroupedInboxItems => {
     const markedItems: GroupedInboxItems = {};
     
-    dataSources.forEach((source) => {
-      const seenItems = loadSeenItems(source.id, instanceId);
+    Object.entries(items).forEach(([key, group]) => {
+      // Load seen items for this specific instance
+      const sourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+      const seenItems = loadSeenItems(sourceId, group.instance.id);
       
-      Object.entries(items).forEach(([key, group]) => {
-        const markedGroup = {
-          ...group,
-          items: group.items.map((item: InboxItem) => ({
-            ...item,
-            isNew: !seenItems.has(item.id),
-          })),
-        };
-        
-        if (markedGroup.repositories) {
-          const markedRepos: typeof markedGroup.repositories = {};
-          Object.entries(markedGroup.repositories).forEach(([repoKey, repo]) => {
-            markedRepos[repoKey] = {
-              ...repo,
-              items: repo.items.map((item: InboxItem) => ({
-                ...item,
-                isNew: !seenItems.has(item.id),
-              })),
-            };
-          });
-          markedGroup.repositories = markedRepos;
-        }
-        
-        markedItems[key] = markedGroup;
-      });
+      const markedGroup = {
+        ...group,
+        items: group.items.map((item: InboxItem) => ({
+          ...item,
+          isNew: !seenItems.has(item.id),
+        })),
+      };
+      
+      if (markedGroup.repositories) {
+        const markedRepos: typeof markedGroup.repositories = {};
+        Object.entries(markedGroup.repositories).forEach(([repoKey, repo]) => {
+          markedRepos[repoKey] = {
+            ...repo,
+            items: repo.items.map((item: InboxItem) => ({
+              ...item,
+              isNew: !seenItems.has(item.id),
+            })),
+          };
+        });
+        markedGroup.repositories = markedRepos;
+      }
+      
+      markedItems[key] = markedGroup;
     });
     
     return markedItems;
-  }, [dataSources, instanceId]);
+  }, []);
 
   // Count new items
   const countNewItems = useCallback((items: GroupedInboxItems): number => {
@@ -211,43 +211,49 @@ export function InboxProvider({
           const markedItems = markNewItems(allItems);
           const newCount = countNewItems(markedItems);
           
-          // Check if there are actual changes (compare item IDs)
-          const currentItemIds = new Set<string>();
-          Object.values(groupedItems).forEach((group) => {
-            group.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
-            if (group.repositories) {
-              Object.values(group.repositories).forEach((repo) => {
-                repo.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
-              });
+          // Use setState callback to get fresh current state for comparison
+          setGroupedItems((currentItems) => {
+            // Check if there are actual changes (compare item IDs)
+            const currentItemIds = new Set<string>();
+            Object.values(currentItems).forEach((group) => {
+              group.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
+              if (group.repositories) {
+                Object.values(group.repositories).forEach((repo) => {
+                  repo.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
+                });
+              }
+            });
+            
+            const newItemIds = new Set<string>();
+            Object.values(markedItems).forEach((group) => {
+              group.items.forEach((item: InboxItem) => newItemIds.add(item.id));
+              if (group.repositories) {
+                Object.values(group.repositories).forEach((repo) => {
+                  repo.items.forEach((item: InboxItem) => newItemIds.add(item.id));
+                });
+              }
+            });
+            
+            // Check if there are differences in the item sets (additions or removals)
+            const hasChanges = currentItemIds.size !== newItemIds.size || 
+              Array.from(newItemIds).some(id => !currentItemIds.has(id)) ||
+              Array.from(currentItemIds).some(id => !newItemIds.has(id));
+            
+            // Only update the UI if auto-refresh is enabled
+            if (settings.autoRefreshOnPoll) {
+              setNewItemsCount(newCount);
+              setLastRefreshTime(new Date());
+              return markedItems;
+            } else if (hasChanges) {
+              // Only dispatch event if there are actual changes
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('inbox-data-available'));
+              }
             }
+            
+            // No changes or auto-refresh disabled, keep current state
+            return currentItems;
           });
-          
-          const newItemIds = new Set<string>();
-          Object.values(markedItems).forEach((group) => {
-            group.items.forEach((item: InboxItem) => newItemIds.add(item.id));
-            if (group.repositories) {
-              Object.values(group.repositories).forEach((repo) => {
-                repo.items.forEach((item: InboxItem) => newItemIds.add(item.id));
-              });
-            }
-          });
-          
-          // Check if there are differences in the item sets
-          const hasChanges = currentItemIds.size !== newItemIds.size || 
-            Array.from(newItemIds).some(id => !currentItemIds.has(id));
-          
-          // Only update the UI if auto-refresh is enabled
-          // Otherwise, just update the cache (which was done by fetchInboxItems)
-          if (settings.autoRefreshOnPoll) {
-            setGroupedItems(markedItems);
-            setNewItemsCount(newCount);
-            setLastRefreshTime(new Date());
-          } else if (hasChanges) {
-            // Only dispatch event if there are actual changes
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('inbox-data-available'));
-            }
-          }
         } catch (err) {
           console.error(`Background poll failed:`, err);
         }
@@ -265,14 +271,35 @@ export function InboxProvider({
 
   // Mark an item as read
   const markAsRead = useCallback((itemId: string) => {
-    dataSources.forEach((source) => {
-      const seenItems = loadSeenItems(source.id, instanceId);
-      seenItems.add(itemId);
-      markItemsAsSeen([itemId], source.id, instanceId);
-    });
-
     // Update the state to reflect the change using setState callback to get fresh state
     setGroupedItems((currentItems) => {
+      // First, find which instance this item belongs to
+      let itemInstanceId: string | undefined;
+      let itemSourceId: string | undefined;
+      
+      Object.values(currentItems).forEach((group) => {
+        const itemInGroup = group.items.find((item: InboxItem) => item.id === itemId);
+        if (itemInGroup) {
+          itemInstanceId = group.instance.id;
+          itemSourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+        }
+        
+        if (group.repositories && !itemInGroup) {
+          Object.values(group.repositories).forEach((repo) => {
+            const itemInRepo = repo.items.find((item: InboxItem) => item.id === itemId);
+            if (itemInRepo) {
+              itemInstanceId = group.instance.id;
+              itemSourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+            }
+          });
+        }
+      });
+      
+      // Mark as seen with the correct instance ID
+      if (itemSourceId && itemInstanceId) {
+        markItemsAsSeen([itemId], itemSourceId, itemInstanceId);
+      }
+      
       const updatedItems: GroupedInboxItems = {};
       Object.entries(currentItems).forEach(([key, group]) => {
         const updatedGroup = {
@@ -308,25 +335,34 @@ export function InboxProvider({
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('inbox-items-read'));
     }
-  }, [dataSources, instanceId, countNewItems]);
+  }, [countNewItems]);
 
   // Mark all items as read
   const markAllAsRead = useCallback(() => {
     setGroupedItems((currentItems) => {
-      const allItemIds: string[] = [];
+      // Group items by instance for proper storage
+      const itemsByInstance: Record<string, { sourceId: string; instanceId: string; itemIds: string[] }> = {};
       
       Object.values(currentItems).forEach((group) => {
-        allItemIds.push(...group.items.map((item: InboxItem) => item.id));
+        const instanceId = group.instance.id;
+        const sourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+        
+        if (!itemsByInstance[instanceId]) {
+          itemsByInstance[instanceId] = { sourceId, instanceId, itemIds: [] };
+        }
+        
+        itemsByInstance[instanceId].itemIds.push(...group.items.map((item: InboxItem) => item.id));
         
         if (group.repositories) {
           Object.values(group.repositories).forEach((repo) => {
-            allItemIds.push(...repo.items.map((item: InboxItem) => item.id));
+            itemsByInstance[instanceId].itemIds.push(...repo.items.map((item: InboxItem) => item.id));
           });
         }
       });
 
-      dataSources.forEach((source) => {
-        markItemsAsSeen(allItemIds, source.id, instanceId);
+      // Mark items as seen with correct instance IDs
+      Object.values(itemsByInstance).forEach(({ sourceId, instanceId, itemIds }) => {
+        markItemsAsSeen(itemIds, sourceId, instanceId);
       });
 
       // Update all items to not be new
@@ -360,7 +396,7 @@ export function InboxProvider({
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('inbox-items-read'));
     }
-  }, [dataSources, instanceId]);
+  }, []);
 
   // Check if at least one data source is configured (only on client)
   const configStatus = useMemo(() => {
