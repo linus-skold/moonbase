@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 
 import { Home, Settings, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,23 +50,30 @@ interface AppSidebarProps {
 };
 
 export function AppSidebar(props?: AppSidebarProps) {
-  const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
-  const storageGh = create('gh-config', '1.0', GhConfigSchema);
-
-  const [adoInstances, setAdoInstances] = useState<any[]>([]);
-  const [ghInstances, setGhInstances] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [isAdoOpen, setIsAdoOpen] = useState(true);
   const [isGhOpen, setIsGhOpen] = useState(true);
   
   const { counts } = useNewItems();
 
   useEffect(() => {
-    const adoConfig = storageAdo.load();
-    setAdoInstances(adoConfig?.instances || []);
-    
-    const ghConfig = storageGh.load();
-    setGhInstances(ghConfig?.instances || []);
+    setMounted(true);
   }, []);
+
+  // Load instances only once when mounted, memoize to prevent re-renders
+  const adoInstances = useMemo(() => {
+    if (!mounted) return [];
+    const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
+    const adoConfig = storageAdo.load();
+    return adoConfig?.instances || [];
+  }, [mounted]);
+
+  const ghInstances = useMemo(() => {
+    if (!mounted) return [];
+    const storageGh = create('gh-config', '1.0', GhConfigSchema);
+    const ghConfig = storageGh.load();
+    return ghConfig?.instances || [];
+  }, [mounted]);
 
   return (
     <CustomSidebar>
@@ -77,10 +85,10 @@ export function AppSidebar(props?: AppSidebarProps) {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -111,14 +119,14 @@ export function AppSidebar(props?: AppSidebarProps) {
                         {adoInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
-                              <a href={`/inbox/${instance.id}`} className="relative pr-8">
+                              <Link href={`/inbox/${instance.id}`} className="relative pr-8">
                                 <span>{instance.name}</span>
                                 {counts[instance.id] > 0 && (
                                   <span className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground animate-pulse">
                                     {counts[instance.id]}
                                   </span>
                                 )}
-                              </a>
+                              </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
@@ -147,14 +155,14 @@ export function AppSidebar(props?: AppSidebarProps) {
                         {ghInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
-                              <a href={`/inbox/${instance.id}`} className="relative pr-8">
+                              <Link href={`/inbox/${instance.id}`} className="relative pr-8">
                                 <span>{instance.name}</span>
                                 {counts[instance.id] > 0 && (
                                   <span className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground animate-pulse">
                                     {counts[instance.id]}
                                   </span>
                                 )}
-                              </a>
+                              </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
