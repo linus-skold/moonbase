@@ -85,11 +85,16 @@ export const NewItemsProvider = ({ children }: { children: React.ReactNode }) =>
       // Listen for custom event when items are marked as read
       const handleItemsRead = () => refreshCounts();
       
+      // Listen for custom event when items are updated (polling detects changes)
+      const handleItemsUpdated = () => refreshCounts();
+      
       window.addEventListener('inbox-items-read', handleItemsRead);
+      window.addEventListener('inbox-items-updated', handleItemsUpdated);
       
       return () => {
         clearInterval(interval);
         window.removeEventListener('inbox-items-read', handleItemsRead);
+        window.removeEventListener('inbox-items-updated', handleItemsUpdated);
       };
     }
   }, [mounted, refreshCounts]);

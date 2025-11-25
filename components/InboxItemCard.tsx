@@ -1,12 +1,20 @@
 import { Card } from "@/components/ui/card";
 import type { InboxItem } from "@/lib/schema/inbox.schema";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, MailOpen, Mail } from "lucide-react";
 import { ItemAssignment } from "./inbox-card/ItemAssignment";
 import { ItemIcon } from "./inbox-card/ItemIcon";
 import { ItemStatusIndicator } from "./inbox-card/ItemStatusIndicator";
 import { DateTime } from "luxon";
 import React from "react";
 import { useInboxContext } from "@/components/inbox/InboxContext";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
 
 interface InboxItemCardProps {
   item: InboxItem;
@@ -21,6 +29,22 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
       inboxContext.markAsRead(item.id);
     }
     // The link will open in a new tab, so we don't need to prevent default
+  };
+
+  const handleMarkAsRead = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inboxContext?.markAsRead) {
+      inboxContext.markAsRead(item.id);
+    }
+  };
+
+  const handleMarkAsUnread = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inboxContext?.markAsUnread) {
+      inboxContext.markAsUnread(item.id);
+    }
   };
 
   return (
@@ -49,6 +73,35 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
                 <ExternalLink className="inline-block ml-1 h-3 w-3 text-muted-foreground align-text-top" />
               </h3>
               <ItemStatusIndicator item={item} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">More options</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {item.isNew ? (
+                    <DropdownMenuItem onClick={handleMarkAsRead}>
+                      <MailOpen className="mr-2 h-4 w-4" />
+                      Mark as Read
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={handleMarkAsUnread}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Mark as Unread
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">

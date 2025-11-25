@@ -54,21 +54,29 @@ export function InboxLayout({
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [showNewDataBanner, setShowNewDataBanner] = useState(false);
+  const [lastRefreshTriggered, setLastRefreshTriggered] = useState<number>(0);
 
   // Listen for new data available events
   useEffect(() => {
-    const handleNewData = () => {
-      setShowNewDataBanner(true);
+    const handleNewData = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const eventTime = customEvent.detail?.timestamp || Date.now();
+      
+      // Only show banner if the event is newer than the last manual refresh
+      if (eventTime > lastRefreshTriggered) {
+        setShowNewDataBanner(true);
+      }
     };
 
     window.addEventListener('inbox-data-available', handleNewData);
     return () => {
       window.removeEventListener('inbox-data-available', handleNewData);
     };
-  }, []);
+  }, [lastRefreshTriggered]);
 
   const handleRefreshClick = async () => {
     setShowNewDataBanner(false);
+    setLastRefreshTriggered(Date.now());
     if (onRefresh) {
       await onRefresh();
     }

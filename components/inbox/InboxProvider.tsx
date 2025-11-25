@@ -335,7 +335,11 @@ export function InboxProvider({
             } else if (hasChanges) {
               // Only dispatch event if there are actual changes
               if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('inbox-data-available'));
+                window.dispatchEvent(new CustomEvent('inbox-data-available', {
+                  detail: { timestamp: Date.now() }
+                }));
+                // Also trigger a refresh of the sidebar counts
+                window.dispatchEvent(new CustomEvent('inbox-items-updated'));
               }
             }
             
@@ -404,6 +408,76 @@ export function InboxProvider({
               ...repo,
               items: repo.items.map((item: InboxItem) =>
                 item.id === itemId ? { ...item, isNew: false } : item
+              ),
+            };
+          });
+          updatedGroup.repositories = updatedRepos;
+        }
+        
+        updatedItems[key] = updatedGroup;
+      });
+      
+      const newCount = countNewItems(updatedItems);
+      setNewItemsCount(newCount);
+      
+      return updatedItems;
+    });
+    
+    // Dispatch custom event to update sidebar counts
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('inbox-items-read'));
+    }
+  }, [countNewItems]);
+
+  // Mark an item as unread
+  const markAsUnread = useCallback((itemId: string) => {
+    setGroupedItems((currentItems) => {
+      // Find which instance this item belongs to
+      let itemInstanceId: string | undefined;
+      let itemSourceId: string | undefined;
+      
+      Object.values(currentItems).forEach((group) => {
+        const itemInGroup = group.items.find((item: InboxItem) => item.id === itemId);
+        if (itemInGroup) {
+          itemInstanceId = group.instance.id;
+          itemSourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+        }
+        
+        if (group.repositories && !itemInGroup) {
+          Object.values(group.repositories).forEach((repo) => {
+            const itemInRepo = repo.items.find((item: InboxItem) => item.id === itemId);
+            if (itemInRepo) {
+              itemInstanceId = group.instance.id;
+              itemSourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+            }
+          });
+        }
+      });
+      
+      // Remove from seen items
+      if (itemSourceId && itemInstanceId) {
+        const seenItems = loadSeenItems(itemSourceId, itemInstanceId);
+        seenItems.delete(itemId);
+        saveSeenItemsDirectly(itemSourceId, seenItems, itemInstanceId);
+      }
+      
+      // Update UI to mark as new
+      const updatedItems: GroupedInboxItems = {};
+      Object.entries(currentItems).forEach(([key, group]) => {
+        const updatedGroup = {
+          ...group,
+          items: group.items.map((item: InboxItem) => 
+            item.id === itemId ? { ...item, isNew: true } : item
+          ),
+        };
+        
+        if (updatedGroup.repositories) {
+          const updatedRepos: typeof updatedGroup.repositories = {};
+          Object.entries(updatedGroup.repositories).forEach(([repoKey, repo]) => {
+            updatedRepos[repoKey] = {
+              ...repo,
+              items: repo.items.map((item: InboxItem) =>
+                item.id === itemId ? { ...item, isNew: true } : item
               ),
             };
           });
@@ -514,6 +588,7 @@ export function InboxProvider({
         lastRefreshTime,
         newItemsCount,
         markAsRead,
+        markAsUnread,
         markAllAsRead,
       })}
     </>

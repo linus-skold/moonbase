@@ -13,6 +13,7 @@ interface InboxContextValue {
   lastRefreshTime: Date | null;
   newItemsCount: number;
   markAsRead: (itemId: string) => void;
+  markAsUnread: (itemId: string) => void;
   markAllAsRead: () => void;
   getFilteredItems: (instanceId?: string) => GroupedInboxItems;
   getFilteredNewItemsCount: (instanceId?: string) => number;
