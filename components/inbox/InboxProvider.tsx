@@ -6,6 +6,26 @@ import { getPollingManager } from "@/lib/utils/polling-manager";
 import { loadSeenItems, markItemsAsSeen } from "@/lib/utils/new-items-tracker";
 import { settingsStorage } from "@/lib/utils/settings-storage";
 
+// Helper to save seen items directly (used internally)
+function saveSeenItemsDirectly(sourceId: string, seenItemIds: Set<string>, instanceId?: string): void {
+  if (typeof window === 'undefined') return;
+  
+  const STORAGE_KEY_PREFIX = 'new-items-';
+  const key = instanceId 
+    ? `${STORAGE_KEY_PREFIX}${sourceId}-${instanceId}`
+    : `${STORAGE_KEY_PREFIX}${sourceId}`;
+  
+  try {
+    const data = {
+      seenItemIds: Array.from(seenItemIds),
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to save seen items:', error);
+  }
+}
+
 export interface InboxDataSource {
   id: string;
   name: string;
@@ -208,36 +228,104 @@ export function InboxProvider({
             }
           });
           
-          const markedItems = markNewItems(allItems);
-          const newCount = countNewItems(markedItems);
-          
           // Use setState callback to get fresh current state for comparison
           setGroupedItems((currentItems) => {
-            // Check if there are actual changes (compare item IDs)
-            const currentItemIds = new Set<string>();
+            // Build maps of current items by ID with their update times
+            const currentItemsMap = new Map<string, { updatedDate: string; instanceId: string; sourceId: string }>();
             Object.values(currentItems).forEach((group) => {
-              group.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
+              const sourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+              const instanceId = group.instance.id;
+              
+              group.items.forEach((item: InboxItem) => {
+                currentItemsMap.set(item.id, { updatedDate: item.updatedDate, instanceId, sourceId });
+              });
               if (group.repositories) {
                 Object.values(group.repositories).forEach((repo) => {
-                  repo.items.forEach((item: InboxItem) => currentItemIds.add(item.id));
+                  repo.items.forEach((item: InboxItem) => {
+                    currentItemsMap.set(item.id, { updatedDate: item.updatedDate, instanceId, sourceId });
+                  });
                 });
               }
             });
             
+            // Check for new items, removed items, or updated items
             const newItemIds = new Set<string>();
-            Object.values(markedItems).forEach((group) => {
-              group.items.forEach((item: InboxItem) => newItemIds.add(item.id));
+            const updatedItemIds: string[] = [];
+            
+            Object.values(allItems).forEach((group) => {
+              group.items.forEach((item: InboxItem) => {
+                const currentItem = currentItemsMap.get(item.id);
+                if (!currentItem) {
+                  // New item
+                  newItemIds.add(item.id);
+                } else if (currentItem.updatedDate !== item.updatedDate) {
+                  // Item was updated - mark it as new so it gets highlighted
+                  updatedItemIds.push(item.id);
+                  newItemIds.add(item.id);
+                }
+              });
+              
               if (group.repositories) {
                 Object.values(group.repositories).forEach((repo) => {
-                  repo.items.forEach((item: InboxItem) => newItemIds.add(item.id));
+                  repo.items.forEach((item: InboxItem) => {
+                    const currentItem = currentItemsMap.get(item.id);
+                    if (!currentItem) {
+                      newItemIds.add(item.id);
+                    } else if (currentItem.updatedDate !== item.updatedDate) {
+                      updatedItemIds.push(item.id);
+                      newItemIds.add(item.id);
+                    }
+                  });
                 });
               }
             });
             
-            // Check if there are differences in the item sets (additions or removals)
-            const hasChanges = currentItemIds.size !== newItemIds.size || 
-              Array.from(newItemIds).some(id => !currentItemIds.has(id)) ||
-              Array.from(currentItemIds).some(id => !newItemIds.has(id));
+            // Check if any items were removed
+            const allNewItemIds = new Set<string>();
+            Object.values(allItems).forEach((group) => {
+              group.items.forEach((item: InboxItem) => allNewItemIds.add(item.id));
+              if (group.repositories) {
+                Object.values(group.repositories).forEach((repo) => {
+                  repo.items.forEach((item: InboxItem) => allNewItemIds.add(item.id));
+                });
+              }
+            });
+            
+            const removedItems = Array.from(currentItemsMap.keys()).filter(id => !allNewItemIds.has(id));
+            
+            // Mark updated items as "unseen" so they show as new
+            if (updatedItemIds.length > 0) {
+              // Group by instance to minimize storage operations
+              const updatesByInstance = new Map<string, { sourceId: string; instanceId: string; itemIds: string[] }>();
+              
+              updatedItemIds.forEach(itemId => {
+                const itemInfo = currentItemsMap.get(itemId);
+                if (itemInfo) {
+                  const key = `${itemInfo.sourceId}-${itemInfo.instanceId}`;
+                  if (!updatesByInstance.has(key)) {
+                    updatesByInstance.set(key, { 
+                      sourceId: itemInfo.sourceId, 
+                      instanceId: itemInfo.instanceId, 
+                      itemIds: [] 
+                    });
+                  }
+                  updatesByInstance.get(key)!.itemIds.push(itemId);
+                }
+              });
+              
+              // Remove updated items from seen list for each instance
+              updatesByInstance.forEach(({ sourceId, instanceId, itemIds }) => {
+                const seenItems = loadSeenItems(sourceId, instanceId);
+                itemIds.forEach(id => seenItems.delete(id));
+                saveSeenItemsDirectly(sourceId, seenItems, instanceId);
+              });
+            }
+            
+            // Now mark items with isNew flag
+            const markedItems = markNewItems(allItems);
+            const newCount = countNewItems(markedItems);
+            
+            const hasChanges = newItemIds.size > 0 || removedItems.length > 0;
             
             // Only update the UI if auto-refresh is enabled
             if (settings.autoRefreshOnPoll) {
