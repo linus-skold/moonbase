@@ -180,66 +180,133 @@ export class AdoService {
     return 'low';
   }
 
-  async fetchAllInboxItems(): Promise<InboxItem[]> {
+  // Async generator for progressive item fetching
+  async *fetchInboxItemsProgressive(): AsyncGenerator<{ items: InboxItem[], progress: { current: number, total: number, stage: string } }> {
     const instances = this.getEnabledInstances();
-    const allItems: InboxItem[] = [];
+    const totalStages = instances.length * 3; // PRs, Work Items, Pinned Projects per instance
+    let currentStage = 0;
 
     for (const instance of instances) {
       try {
         const client = new AdoClient(instance);
+        
+        // Fetch projects first (needed for other queries)
         const projects = await client.getProjects();
 
-        // Fetch PRs assigned to me
-        const prs = await client.getPullRequestsAssignedToMe();
-        allItems.push(...prs.map((pr) => this.convertPullRequestToInboxItem(pr, instance)));
-
-        // Fetch work items assigned to me!
-        const workItems = await client.getWorkItemsAssignedToMe(
-          undefined
-        );
-        for (const wi of workItems) {
-          const project = projects.find((p) => 
-            wi.fields['System.AreaPath']?.startsWith(p.name)
-          );
-          if (project) {
-            allItems.push(this.convertWorkItemToInboxItem(wi, instance, project.name));
-          }
+        // Stage 1: Fetch PRs assigned to me
+        currentStage++;
+        try {
+          const prs = await client.getPullRequestsAssignedToMe();
+          const prItems = prs.map((pr) => this.convertPullRequestToInboxItem(pr, instance));
+          yield {
+            items: prItems,
+            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Pull Requests` }
+          };
+        } catch (error) {
+          console.error(`Error fetching PRs from instance ${instance.name}:`, error);
+          yield {
+            items: [],
+            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Pull Requests (Error)` }
+          };
         }
 
-        // Fetch pipeline runs for pinned projects
-        const pinnedProjects = this.config.pinnedProjects || [];
-        for (const projectId of pinnedProjects) {
-          const project = projects.find((p) => p.id === projectId);
-          if (!project) continue;
-
-          try {
-            const pipelineRuns = await client.getPipelineRuns(projectId, 10);
-            allItems.push(
-              ...pipelineRuns
-                .filter((run) => run.state === 'inProgress' || run.state === 'completed')
-                .slice(0, 5)
-                .map((run) =>
-                  this.convertPipelineRunToInboxItem(run, instance, projectId, project.name)
-                )
+        // Stage 2: Fetch work items assigned to me
+        currentStage++;
+        try {
+          const workItems = await client.getWorkItemsAssignedToMe(undefined);
+          const wiItems: InboxItem[] = [];
+          for (const wi of workItems) {
+            const project = projects.find((p) => 
+              wi.fields['System.AreaPath']?.startsWith(p.name)
             );
-
-            // Fetch new tasks for pinned projects
-            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            const newTasks = await client.getNewTasksForProject(projectId, oneDayAgo);
-            allItems.push(
-              ...newTasks.map((task) =>
-                this.convertWorkItemToInboxItem(task, instance, project.name)
-              )
-            );
-          } catch (error) {
-            console.error(`Error fetching data for project ${projectId}:`, error);
+            if (project) {
+              wiItems.push(this.convertWorkItemToInboxItem(wi, instance, project.name));
+            }
           }
+          yield {
+            items: wiItems,
+            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Work Items` }
+          };
+        } catch (error) {
+          console.error(`Error fetching work items from instance ${instance.name}:`, error);
+          yield {
+            items: [],
+            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Work Items (Error)` }
+          };
+        }
+
+        // Stage 3: Fetch pipeline runs and tasks for pinned projects
+        currentStage++;
+        try {
+          const pinnedProjects = this.config.pinnedProjects || [];
+          const pinnedItems: InboxItem[] = [];
+          
+          // Process pinned projects in parallel
+          await Promise.allSettled(
+            pinnedProjects.map(async (projectId) => {
+              const project = projects.find((p) => p.id === projectId);
+              if (!project) return;
+
+              try {
+                // Fetch pipeline runs and new tasks in parallel
+                const [pipelineRuns, newTasks] = await Promise.allSettled([
+                  client.getPipelineRuns(projectId, 10),
+                  (async () => {
+                    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                    return client.getNewTasksForProject(projectId, oneDayAgo);
+                  })()
+                ]);
+
+                if (pipelineRuns.status === 'fulfilled') {
+                  pinnedItems.push(
+                    ...pipelineRuns.value
+                      .filter((run) => run.state === 'inProgress' || run.state === 'completed')
+                      .slice(0, 5)
+                      .map((run) =>
+                        this.convertPipelineRunToInboxItem(run, instance, projectId, project.name)
+                      )
+                  );
+                }
+
+                if (newTasks.status === 'fulfilled') {
+                  pinnedItems.push(
+                    ...newTasks.value.map((task) =>
+                      this.convertWorkItemToInboxItem(task, instance, project.name)
+                    )
+                  );
+                }
+              } catch (error) {
+                console.error(`Error fetching data for project ${projectId}:`, error);
+              }
+            })
+          );
+          
+          yield {
+            items: pinnedItems,
+            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Pinned Projects` }
+          };
+        } catch (error) {
+          console.error(`Error fetching pinned projects from instance ${instance.name}:`, error);
+          yield {
+            items: [],
+            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Pinned Projects (Error)` }
+          };
         }
       } catch (error) {
         console.error(`Error fetching data from instance ${instance.name}:`, error);
+        currentStage += 3; // Skip all stages for this instance
       }
     }
+  }
 
+  async fetchAllInboxItems(): Promise<InboxItem[]> {
+    const allItems: InboxItem[] = [];
+    
+    // Use the progressive fetcher but collect all results
+    for await (const batch of this.fetchInboxItemsProgressive()) {
+      allItems.push(...batch.items);
+    }
+    
     return allItems;
   }
 

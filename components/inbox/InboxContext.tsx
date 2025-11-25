@@ -15,6 +15,7 @@ interface InboxContextValue {
   markAsRead: (itemId: string) => void;
   markAsUnread: (itemId: string) => void;
   markAllAsRead: () => void;
+  loadingProgress?: { current: number, total: number, stage: string };
   getFilteredItems: (instanceId?: string) => GroupedInboxItems;
   getFilteredNewItemsCount: (instanceId?: string) => number;
 }

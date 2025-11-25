@@ -51,7 +51,7 @@ export default function Page({ params }: PageProps) {
   }, [slug]);
   
   // Use the global inbox context but filter by instance ID
-  const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead } = useInbox(slug);
+  const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead, loadingProgress } = useInbox(slug);
   
   return (
     <InboxLayout
@@ -64,6 +64,7 @@ export default function Page({ params }: PageProps) {
       newItemsCount={newItemsCount}
       markAllAsRead={markAllAsRead}
       markAsRead={markAsRead}
+      loadingProgress={loadingProgress}
       emptyStateConfig={
         !isConfigured
           ? {

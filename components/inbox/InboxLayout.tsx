@@ -30,6 +30,7 @@ export interface InboxLayoutProps {
   newItemsCount?: number;
   markAllAsRead?: () => void;
   markAsRead?: (itemId: string) => void;
+  loadingProgress?: { current: number, total: number, stage: string };
   emptyStateConfig?: {
     icon?: React.ReactNode;
     title: string;
@@ -50,6 +51,7 @@ export function InboxLayout({
   newItemsCount = 0,
   markAllAsRead,
   markAsRead,
+  loadingProgress,
   emptyStateConfig,
 }: InboxLayoutProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -345,11 +347,46 @@ export function InboxLayout({
           </div>
         </Card>
       ) : isLoading && totalItems === 0 ? (
-        <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+          {loadingProgress && (
+            <div className="w-full max-w-md space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{loadingProgress.stage}</span>
+                <span>{loadingProgress.current} / {loadingProgress.total}</span>
+              </div>
+              <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-300 ease-out"
+                  style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <GroupedInboxView groupedItems={filteredItems} markAsRead={markAsRead} />
+        <>
+          {loadingProgress && (
+            <Card className="p-4 mb-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="flex items-center gap-3">
+                <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{loadingProgress.stage}</span>
+                    <span className="text-muted-foreground">{loadingProgress.current} / {loadingProgress.total}</span>
+                  </div>
+                  <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-300 ease-out"
+                      style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+          <GroupedInboxView groupedItems={filteredItems} markAsRead={markAsRead} />
+        </>
       )}
     </div>
   );

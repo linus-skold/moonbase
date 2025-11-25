@@ -6,7 +6,7 @@ import { useInbox } from '@/components/inbox/InboxContext';
 import { Inbox } from 'lucide-react';
 
 export default function Home() {
-  const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead } = useInbox();
+  const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead, loadingProgress } = useInbox();
 
   return (
     <InboxLayout
@@ -20,6 +20,7 @@ export default function Home() {
       newItemsCount={newItemsCount}
       markAllAsRead={markAllAsRead}
       markAsRead={markAsRead}
+      loadingProgress={loadingProgress}
       emptyStateConfig={
         !isConfigured
           ? {
