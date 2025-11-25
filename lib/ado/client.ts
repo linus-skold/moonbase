@@ -54,7 +54,9 @@ export class AdoClient {
       const repos = await gitApi.getRepositories(projectId);
       for (const repo of repos) {
         const prs = await gitApi.getPullRequests(repo.id!, searchCriteria, projectId);
-        pullRequests.push(...prs);
+        if (prs && Array.isArray(prs)) {
+          pullRequests.push(...prs);
+        }
       }
     } else {
       const projects = await this.getProjects();
@@ -62,7 +64,9 @@ export class AdoClient {
         const repos = await gitApi.getRepositories(project.id);
         for (const repo of repos) {
           const prs = await gitApi.getPullRequests(repo.id!, searchCriteria, project.id);
-          pullRequests.push(...prs);
+          if (prs && Array.isArray(prs)) {
+            pullRequests.push(...prs);
+          }
         }
       }
     }
