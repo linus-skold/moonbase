@@ -49,37 +49,38 @@ export default function RootLayout({
             <NewItemsProvider>
               <GlobalInboxProvider>
                 <div className="flex flex-col h-screen overflow-hidden">
-                <BannerContainer>
-                  <SystemNotificationBanner variant="github" canClose={false}>
-                    <BannerTitle className="text-center">
-                      <span className="font-bold">Moonbase </span> is currently
-                      under <span className="font-bold">development</span>. Please
-                      report any issues on{" "}
-                      <a
-                        href="https://github.com/linus-skold/moonbase/issues"
-                        className="underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        GitHub
-                      </a>
-                      .
-                    </BannerTitle>
-                  </SystemNotificationBanner>
-                  <VersionBanner />
-                </BannerContainer>
+                  <BannerContainer>
+                    <SystemNotificationBanner variant="github" canClose={false}>
+                      <BannerTitle className="text-center">
+                        <span className="font-bold">Moonbase </span> is
+                        currently under{" "}
+                        <span className="font-bold">development</span>. Please
+                        report any issues on{" "}
+                        <a
+                          href="https://github.com/linus-skold/moonbase/issues"
+                          className="underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          GitHub
+                        </a>
+                        .
+                      </BannerTitle>
+                    </SystemNotificationBanner>
+                    <VersionBanner />
+                  </BannerContainer>
 
-                <div className="flex flex-1 overflow-hidden">
-                  <SidebarProvider>
-                    <AppSidebar />
-
-                    <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+                  <div className="flex flex-1 overflow-hidden">
+                    <SidebarProvider>
+                      <AppSidebar />
                       <SidebarTrigger />
-                      {children}
-                    </main>
-                  </SidebarProvider>
+
+                      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+                        {children}
+                      </main>
+                    </SidebarProvider>
+                  </div>
                 </div>
-              </div>
               </GlobalInboxProvider>
             </NewItemsProvider>
           </IntegrationProvider>
