@@ -1,5 +1,6 @@
 'use client';
 
+
 import React, { useState , useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import {
 } from '@/components/InboxFilters';
 import type { GroupedInboxItems, InboxItem } from '@/lib/schema/inbox.schema';
 import { RefreshCw, Settings as SettingsIcon, Inbox } from 'lucide-react';
+import { SuggestionType, SearchSuggestion, SearchSuggestions } from '@/lib/schema/suggestion.schema';
 
 export interface InboxLayoutProps {
   title?: string;
@@ -82,6 +84,43 @@ export function InboxLayout({
     }
   };
 
+  // Extract search suggestions from all items
+  const searchSuggestions = useMemo(() => {
+    const counts = new Map<SuggestionType, Map<string, number>>();
+    const types: SuggestionType[] = ["project", "org", "repo", "status", "assignee", "type"];
+    
+    // Initialize count maps
+    types.forEach(type => counts.set(type, new Map()));
+
+    // Count occurrences
+    Object.values(groupedItems).forEach((group) => {
+      group.items.forEach((item) => {
+        const incrementCount = (type: SuggestionType, value: string | undefined) => {
+          if (!value) return;
+          const map = counts.get(type)!;
+          map.set(value, (map.get(value) || 0) + 1);
+        };
+
+        incrementCount("project", item.project.name);
+        incrementCount("org", item.instance.name);
+        incrementCount("repo", item.repository?.name);
+        incrementCount("status", item.status);
+        incrementCount("assignee", item.assignedTo?.displayName);
+        incrementCount("type", item.type);
+      });
+    });
+
+    // Convert to suggestions
+    const suggestions: SearchSuggestion[] = [];
+    counts.forEach((map, type) => {
+      map.forEach((count, name) => {
+        suggestions.push({ type, value: name, label: name, count });
+      });
+    });
+
+    return suggestions;
+  }, [groupedItems]);
+
   const filteredItems = useMemo(() => {
     // Flatten all items from grouped structure
     const allItems: InboxItem[] = [];
@@ -89,11 +128,49 @@ export function InboxLayout({
       allItems.push(...group.items);
     });
 
-    // Apply text search filter
+    // Parse search query for filters
     let filtered = allItems;
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = allItems.filter(
+    const filters: Record<string, string[]> = {};
+    let textQuery = searchQuery;
+
+    // Extract @filter:value patterns
+    const filterRegex = /@(\w+):([^\s]+)/g;
+    let match;
+    while ((match = filterRegex.exec(searchQuery)) !== null) {
+      const [fullMatch, filterType, filterValue] = match;
+      if (!filters[filterType]) {
+        filters[filterType] = [];
+      }
+      filters[filterType].push(filterValue.toLowerCase());
+      textQuery = textQuery.replace(fullMatch, "").trim();
+    }
+
+    // Apply filter-based search
+    if (Object.keys(filters).length > 0) {
+      filtered = filtered.filter((item) => {
+        return Object.entries(filters).every(([filterType, filterValues]) => {
+          const itemValue = (() => {
+            switch (filterType) {
+              case 'project': return item.project.name;
+              case 'org': return item.instance.name;
+              case 'repo': return item.repository?.name;
+              case 'status': return item.status;
+              case 'assignee': return item.assignedTo?.displayName;
+              case 'type': return item.type;
+              default: return undefined;
+            }
+          })();
+
+          if (!itemValue) return false;
+          return filterValues.some(fv => itemValue.toLowerCase().includes(fv));
+        });
+      });
+    }
+
+    // Apply text search filter on remaining text
+    if (textQuery.trim()) {
+      const query = textQuery.toLowerCase();
+      filtered = filtered.filter(
         (item) =>
           item.title.toLowerCase().includes(query) ||
           item.description?.toLowerCase().includes(query) ||
@@ -228,6 +305,7 @@ export function InboxLayout({
               <InboxSearch
                 value={searchQuery}
                 onChange={setSearchQuery}
+                suggestions={searchSuggestions}
               />
             </div>
 
