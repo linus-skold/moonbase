@@ -38,6 +38,41 @@ export class AdoClient {
     }));
   }
 
+  // Helper to process tasks with concurrency limit
+  private async processConcurrently<T, R>(
+    items: T[],
+    processor: (item: T) => Promise<R>,
+    concurrency: number = 5
+  ): Promise<R[]> {
+    const results: R[] = [];
+    const executing: Promise<void>[] = [];
+
+    for (const item of items) {
+      const promise = processor(item).then(result => {
+        results.push(result);
+      }).catch(err => {
+        console.error('Error processing item:', err);
+        return undefined;
+      });
+
+      executing.push(promise);
+
+      if (executing.length >= concurrency) {
+        await Promise.race(executing);
+        const completed = executing.filter(p => 
+          Promise.race([p, Promise.resolve('__done__')]).then(r => r === '__done__')
+        );
+        completed.forEach(p => {
+          const index = executing.indexOf(p);
+          if (index > -1) executing.splice(index, 1);
+        });
+      }
+    }
+
+    await Promise.all(executing);
+    return results.filter(r => r !== undefined);
+  }
+
   async getPullRequestsAssignedToMe(
     projectId?: string
   ): Promise<AdoPullRequest[]> {
@@ -52,23 +87,58 @@ export class AdoClient {
     
     if (projectId) {
       const repos = await gitApi.getRepositories(projectId);
-      for (const repo of repos) {
-        const prs = await gitApi.getPullRequests(repo.id!, searchCriteria, projectId);
-        if (prs && Array.isArray(prs)) {
-          pullRequests.push(...prs);
-        }
-      }
+      
+      // Fetch PRs from all repos in parallel with concurrency control
+      const prBatches = await this.processConcurrently(
+        repos,
+        async (repo) => {
+          try {
+            const prs = await gitApi.getPullRequests(repo.id!, searchCriteria, projectId);
+            return prs && Array.isArray(prs) ? prs : [];
+          } catch (error) {
+            console.error(`Error fetching PRs for repo ${repo.name}:`, error);
+            return [];
+          }
+        },
+        10 // Process 10 repos concurrently
+      );
+      
+      pullRequests = prBatches.flat();
     } else {
       const projects = await this.getProjects();
-      for (const project of projects) {
-        const repos = await gitApi.getRepositories(project.id);
-        for (const repo of repos) {
-          const prs = await gitApi.getPullRequests(repo.id!, searchCriteria, project.id);
-          if (prs && Array.isArray(prs)) {
-            pullRequests.push(...prs);
+      
+      // Fetch PRs from all projects in parallel with concurrency control
+      const prBatches = await this.processConcurrently(
+        projects,
+        async (project) => {
+          try {
+            const repos = await gitApi.getRepositories(project.id);
+            
+            // Fetch PRs from all repos in this project in parallel
+            const projectPrBatches = await this.processConcurrently(
+              repos,
+              async (repo) => {
+                try {
+                  const prs = await gitApi.getPullRequests(repo.id!, searchCriteria, project.id);
+                  return prs && Array.isArray(prs) ? prs : [];
+                } catch (error) {
+                  console.error(`Error fetching PRs for repo ${repo.name} in project ${project.name}:`, error);
+                  return [];
+                }
+              },
+              5 // Process 5 repos per project concurrently
+            );
+            
+            return projectPrBatches.flat();
+          } catch (error) {
+            console.error(`Error fetching repos for project ${project.name}:`, error);
+            return [];
           }
-        }
-      }
+        },
+        3 // Process 3 projects concurrently
+      );
+      
+      pullRequests = prBatches.flat();
     }
 
     return pullRequests.map(pr => {

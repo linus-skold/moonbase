@@ -12,7 +12,10 @@ export function createAdoDataSource(instanceId?: string): InboxDataSource {
     id: dataSourceName,
     name: "Azure DevOps",
 
-    fetchInboxItems: async (options?: { forceRefresh?: boolean }): Promise<GroupedInboxItems> => {
+    fetchInboxItems: async (options?: { 
+      forceRefresh?: boolean;
+      onProgress?: (data: GroupedInboxItems, progress: { current: number, total: number, stage: string }) => void;
+    }): Promise<GroupedInboxItems> => {
       // Only run on client side
       if (typeof window === "undefined") {
         return {};
@@ -52,29 +55,117 @@ export function createAdoDataSource(instanceId?: string): InboxDataSource {
         };
       }
 
-      // Call the API route instead of using the service directly
-      const response = await fetch("/api/ado/inbox", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(filteredConfig),
-      });
+      // Use streaming if onProgress callback is provided
+      const useStreaming = !!options?.onProgress;
+      
+      if (useStreaming) {
+        // Streaming mode: progressively load data
+        const response = await fetch("/api/ado/inbox?streaming=true", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(filteredConfig),
+        });
 
-      if (!response.ok) {
-        console.error(
-          "Failed to fetch ADO inbox items:",
-          await response.text()
-        );
-        return {};
+        if (!response.ok) {
+          console.error(
+            "Failed to fetch ADO inbox items:",
+            await response.text()
+          );
+          return {};
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          console.error("Failed to get response reader");
+          return {};
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let accumulatedData: GroupedInboxItems = {};
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep incomplete line in buffer
+            
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              
+              try {
+                const message = JSON.parse(line);
+                
+                if (message.type === 'progress') {
+                  // Merge progressive data - properly merge items within each group
+                  Object.entries(message.data).forEach(([key, newGroup]) => {
+                    if (accumulatedData[key]) {
+                      // Group exists, merge items
+                      const existingItemIds = new Set(accumulatedData[key].items.map((item: any) => item.id));
+                      const newItems = newGroup.items.filter((item: any) => !existingItemIds.has(item.id));
+                      accumulatedData[key] = {
+                        ...accumulatedData[key],
+                        items: [...accumulatedData[key].items, ...newItems],
+                      };
+                    } else {
+                      // New group
+                      accumulatedData[key] = newGroup;
+                    }
+                  });
+                  
+                  // Notify progress with accumulated data
+                  options.onProgress?.({ ...accumulatedData }, message.progress);
+                } else if (message.type === 'complete') {
+                  // Streaming complete
+                  break;
+                } else if (message.type === 'error') {
+                  console.error('Streaming error:', message.error);
+                  break;
+                }
+              } catch (parseError) {
+                console.error('Failed to parse streaming message:', parseError);
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+
+        // Cache the final accumulated data
+        InboxCache.setCachedItems(dataSourceName, accumulatedData, instanceId);
+        
+        return accumulatedData;
+      } else {
+        // Non-streaming mode: fetch all at once (backward compatible)
+        const response = await fetch("/api/ado/inbox", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(filteredConfig),
+        });
+
+        if (!response.ok) {
+          console.error(
+            "Failed to fetch ADO inbox items:",
+            await response.text()
+          );
+          return {};
+        }
+
+        const data = await response.json();
+        
+        // Cache the fetched data
+        InboxCache.setCachedItems(dataSourceName, data, instanceId);
+        
+        return data;
       }
-
-      const data = await response.json();
-      
-      // Cache the fetched data
-      InboxCache.setCachedItems(dataSourceName, data, instanceId);
-      
-      return data;
     },
 
     getConfigStatus: () => {

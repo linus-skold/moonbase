@@ -31,6 +31,7 @@ export interface InboxDataSource {
   name: string;
   fetchInboxItems: (options?: {
     forceRefresh?: boolean;
+    onProgress?: (data: GroupedInboxItems, progress: { current: number, total: number, stage: string }) => void;
   }) => Promise<GroupedInboxItems>;
   getConfigStatus: () => { isConfigured: boolean; configUrl?: string };
 }
@@ -47,11 +48,13 @@ export interface InboxProviderProps {
     newItemsCount: number;
     markAsRead: (itemId: string) => void;
     markAllAsRead: () => void;
+    loadingProgress?: { current: number, total: number, stage: string };
   }) => React.ReactNode;
   dataSources: InboxDataSource[];
   autoFetch?: boolean;
   enablePolling?: boolean;
   instanceId?: string;
+  enableProgressiveLoading?: boolean;
 }
 
 export function InboxProvider({
@@ -60,6 +63,7 @@ export function InboxProvider({
   autoFetch = true,
   enablePolling = true,
   instanceId,
+  enableProgressiveLoading = true,
 }: InboxProviderProps) {
   const [mounted, setMounted] = useState(false);
   const [groupedItems, setGroupedItems] = useState<GroupedInboxItems>({});
@@ -67,6 +71,7 @@ export function InboxProvider({
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [newItemsCount, setNewItemsCount] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState<{ current: number, total: number, stage: string } | undefined>(undefined);
 
   // Only run on client side
   useEffect(() => {
@@ -131,30 +136,146 @@ export function InboxProvider({
     async (forceRefresh = false) => {
       setIsLoading(true);
       setError(null);
+      
+      // Show progress immediately when force refreshing
+      if (enableProgressiveLoading && forceRefresh) {
+        setLoadingProgress({ current: 0, total: 1, stage: 'Starting refresh...' });
+      }
 
       try {
         const allItems: GroupedInboxItems = {};
+        let accumulatedItems: GroupedInboxItems = {};
+        let progressUpdatePending = false;
 
-        // Fetch from all data sources in parallel
-        const results = await Promise.allSettled(
-          dataSources.map((source) => source.fetchInboxItems({ forceRefresh }))
-        );
-
-        results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
-            // Merge items from this source
-            Object.entries(result.value).forEach(([key, value]) => {
-              // Ensure unique keys by prefixing with source ID
-              const uniqueKey = `${dataSources[index].id}-${key}`;
-              allItems[uniqueKey] = value;
+        if (enableProgressiveLoading && forceRefresh) {
+          // Capture current items to detect changes
+          const currentItemsSnapshot = new Map<string, { updatedDate: string; instanceId: string; sourceId: string }>();
+          
+          setGroupedItems(prevItems => {
+            Object.values(prevItems).forEach((group) => {
+              const sourceId = group.instance.instanceType === 'ado' ? 'ado' : 'github';
+              const instanceId = group.instance.id;
+              
+              group.items.forEach((item: InboxItem) => {
+                currentItemsSnapshot.set(item.id, { 
+                  updatedDate: item.updatedDate, 
+                  instanceId, 
+                  sourceId 
+                });
+              });
             });
-          } else {
-            console.error(
-              `Error fetching from ${dataSources[index].name}:`,
-              result.reason
-            );
-          }
-        });
+            return prevItems;
+          });
+
+          // Progressive loading with live updates
+          const results = await Promise.allSettled(
+            dataSources.map((source) => 
+              source.fetchInboxItems({ 
+                forceRefresh,
+                onProgress: (progressData, progress) => {
+                  // Prevent overlapping updates
+                  if (progressUpdatePending) return;
+                  progressUpdatePending = true;
+                  
+                  // Schedule state updates for next tick to avoid setState during render
+                  setTimeout(() => {
+                    progressUpdatePending = false;
+                    
+                    // Update progress indicator
+                    setLoadingProgress(progress);
+                    
+                    // Merge progressive data into accumulated items
+                    Object.entries(progressData).forEach(([key, value]) => {
+                      const uniqueKey = `${source.id}-${key}`;
+                      accumulatedItems[uniqueKey] = value;
+                    });
+                    
+                    // Update UI with accumulated results, merging with existing items
+                    setGroupedItems(prevItems => {
+                      // Create a merged view that preserves existing groups and updates them
+                      const merged: GroupedInboxItems = { ...prevItems };
+                      
+                      Object.entries(accumulatedItems).forEach(([key, newGroup]) => {
+                        if (merged[key]) {
+                          // Group exists - merge items, replacing by ID
+                          const existingItemsMap = new Map(
+                            merged[key].items.map((item: InboxItem) => [item.id, item])
+                          );
+                          
+                          // Update with new items and detect changes
+                          newGroup.items.forEach((newItem: InboxItem) => {
+                            const oldItem = currentItemsSnapshot.get(newItem.id);
+                            
+                            // If item was updated (different updatedDate), mark as unseen
+                            if (oldItem && oldItem.updatedDate !== newItem.updatedDate) {
+                              const seenItems = loadSeenItems(oldItem.sourceId, oldItem.instanceId);
+                              seenItems.delete(newItem.id);
+                              saveSeenItemsDirectly(oldItem.sourceId, seenItems, oldItem.instanceId);
+                            }
+                            
+                            existingItemsMap.set(newItem.id, newItem);
+                          });
+                          
+                          merged[key] = {
+                            ...newGroup,
+                            items: Array.from(existingItemsMap.values()),
+                          };
+                        } else {
+                          // New group
+                          merged[key] = newGroup;
+                        }
+                      });
+                      
+                      const markedItems = markNewItems(merged);
+                      return markedItems;
+                    });
+                    
+                    setNewItemsCount(prevCount => {
+                      const count = countNewItems({ ...accumulatedItems });
+                      return count;
+                    });
+                  }, 0);
+                },
+              })
+            )
+          );
+
+          results.forEach((result, index) => {
+            if (result.status === "fulfilled") {
+              // Merge final items from this source
+              Object.entries(result.value).forEach(([key, value]) => {
+                const uniqueKey = `${dataSources[index].id}-${key}`;
+                allItems[uniqueKey] = value;
+              });
+            } else {
+              console.error(
+                `Error fetching from ${dataSources[index].name}:`,
+                result.reason
+              );
+            }
+          });
+        } else {
+          // Standard loading: fetch all at once
+          const results = await Promise.allSettled(
+            dataSources.map((source) => source.fetchInboxItems({ forceRefresh }))
+          );
+
+          results.forEach((result, index) => {
+            if (result.status === "fulfilled") {
+              // Merge items from this source
+              Object.entries(result.value).forEach(([key, value]) => {
+                // Ensure unique keys by prefixing with source ID
+                const uniqueKey = `${dataSources[index].id}-${key}`;
+                allItems[uniqueKey] = value;
+              });
+            } else {
+              console.error(
+                `Error fetching from ${dataSources[index].name}:`,
+                result.reason
+              );
+            }
+          });
+        }
 
         const markedItems = markNewItems(allItems);
         setGroupedItems(markedItems);
@@ -166,9 +287,13 @@ export function InboxProvider({
         );
       } finally {
         setIsLoading(false);
+        // Delay clearing progress to ensure all setTimeout callbacks complete
+        setTimeout(() => {
+          setLoadingProgress(undefined);
+        }, 100);
       }
     },
-    [dataSources, markNewItems, countNewItems]
+    [dataSources, markNewItems, countNewItems, enableProgressiveLoading]
   );
 
   // Auto-fetch on mount and when data sources change (only on client)
@@ -590,6 +715,7 @@ export function InboxProvider({
         markAsRead,
         markAsUnread,
         markAllAsRead,
+        loadingProgress,
       })}
     </>
   );
