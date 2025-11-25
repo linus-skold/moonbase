@@ -3,8 +3,8 @@
 import React, { useState , useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input'
 import { GroupedInboxView } from '@/components/GroupedInboxView';
+import { InboxSearch } from '@/components/search/InboxSearch';
 import {
   InboxFilters,
   sortItems,
@@ -14,7 +14,7 @@ import {
   type FilterOption,
 } from '@/components/InboxFilters';
 import type { GroupedInboxItems, InboxItem } from '@/lib/schema/inbox.schema';
-import { RefreshCw, Settings as SettingsIcon, Inbox, Search } from 'lucide-react';
+import { RefreshCw, Settings as SettingsIcon, Inbox } from 'lucide-react';
 
 export interface InboxLayoutProps {
   title?: string;
@@ -224,14 +224,10 @@ export function InboxLayout({
 
         {totalItems > 0 && (
           <>
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search inbox items..."
+            <div className="mb-4">
+              <InboxSearch
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                onChange={setSearchQuery}
               />
             </div>
 
