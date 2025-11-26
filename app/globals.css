@@ -48,6 +48,37 @@
   --color-banner-notification: var(--banner-notification);
   --color-banner-notification-foreground: var(--banner-notification-foreground);
   --color-banner-notification-border: var(--banner-notification-border);
+  --color-muted-red-100: var(--muted-red-100);
+  --color-muted-red-200: var(--muted-red-200);
+  --color-muted-red-300: var(--muted-red-300);
+  --color-muted-red-border: var(--muted-red-border);
+  --color-muted-red-foreground: var(--muted-red-foreground);
+  --color-muted-blue-100: var(--muted-blue-100);
+  --color-muted-blue-200: var(--muted-blue-200);
+  --color-muted-blue-300: var(--muted-blue-300);
+  --color-muted-blue-border: var(--muted-blue-border);
+  --color-muted-blue-foreground: var(--muted-blue-foreground);
+  --color-muted-green-100: var(--muted-green-100);
+  --color-muted-green-200: var(--muted-green-200);
+  --color-muted-green-300: var(--muted-green-300);
+  --color-muted-green-border: var(--muted-green-border);
+  --color-muted-green-foreground: var(--muted-green-foreground);
+  --color-muted-yellow-100: var(--muted-yellow-100);
+  --color-muted-yellow-200: var(--muted-yellow-200);
+  --color-muted-yellow-300: var(--muted-yellow-300);
+  --color-muted-yellow-border: var(--muted-yellow-border);
+  --color-muted-yellow-foreground: var(--muted-yellow-foreground);
+  --color-muted-purple-100: var(--muted-purple-100);
+  --color-muted-purple-200: var(--muted-purple-200);
+  --color-muted-purple-300: var(--muted-purple-300);
+  --color-muted-purple-border: var(--muted-purple-border);
+  --color-muted-purple-foreground: var(--muted-purple-foreground);
+  --color-muted-orange-100: var(--muted-orange-100);
+  --color-muted-orange-200: var(--muted-orange-200);
+  --color-muted-orange-300: var(--muted-orange-300);
+  --color-muted-orange-border: var(--muted-orange-border);
+  --color-muted-orange-foreground: var(--muted-orange-foreground);
+
 }
 
 :root {
@@ -90,6 +121,48 @@
   --banner-notification: rgb(4, 12, 38);    /* Deep blue */
   --banner-notification-foreground: oklch(0.3 0.08 260);
   --banner-notification-border: oklch(0.85 0.04 260 / 0.6);
+  
+  /* Muted Reds */
+  --muted-red-100: oklch(0.80 0.08 20);
+  --muted-red-200: oklch(0.70 0.10 20);
+  --muted-red-300: oklch(0.58 0.12 20);
+  --muted-red-border: oklch(0.60 0.10 20 / 0.3);
+  --muted-red-foreground: oklch(0.30 0.12 20);
+  
+  /* Muted Blues */
+  --muted-blue-100: oklch(0.73 0.06 250);
+  --muted-blue-200: oklch(0.65 0.07 250);
+  --muted-blue-300: oklch(0.53 0.08 250);
+  --muted-blue-border: oklch(0.50 0.08 250 / 0.3);
+  --muted-blue-foreground: oklch(0.30 0.10 250);
+  
+  /* Muted Greens */
+  --muted-green-100: oklch(0.75 0.04 160);
+  --muted-green-200: oklch(0.67 0.05 160);
+  --muted-green-300: oklch(0.55 0.06 160);
+  --muted-green-border: oklch(0.50 0.06 160 / 0.3);
+  --muted-green-foreground: oklch(0.28 0.08 160);
+  
+  /* Muted Yellows / Golds */
+  --muted-yellow-100: oklch(0.78 0.08 80);
+  --muted-yellow-200: oklch(0.70 0.09 80);
+  --muted-yellow-300: oklch(0.60 0.10 80);
+  --muted-yellow-border: oklch(0.55 0.10 80 / 0.3);
+  --muted-yellow-foreground: oklch(0.32 0.12 80);
+  
+  /* Muted Purples */
+  --muted-purple-100: oklch(0.75 0.07 290);
+  --muted-purple-200: oklch(0.65 0.08 290);
+  --muted-purple-300: oklch(0.53 0.09 290);
+  --muted-purple-border: oklch(0.50 0.09 290 / 0.3);
+  --muted-purple-foreground: oklch(0.30 0.11 290);
+  
+  /* Muted Oranges */
+  --muted-orange-100: oklch(0.80 0.06 50);
+  --muted-orange-200: oklch(0.72 0.08 50);
+  --muted-orange-300: oklch(0.62 0.10 50);
+  --muted-orange-border: oklch(0.58 0.10 50 / 0.3);
+  --muted-orange-foreground: oklch(0.32 0.12 50);
 }
 
 .dark {
@@ -131,6 +204,48 @@
   --banner-notification: rgb(4, 12, 38);    /* Deep blue */
   --banner-notification-foreground: oklch(0.9 0.04 260);
   --banner-notification-border: oklch(0.35 0.15 260 / 0.6);
+  
+  /* Muted Reds */
+  --muted-red-100: oklch(0.58 0.12 20);
+  --muted-red-200: oklch(0.50 0.13 20);
+  --muted-red-300: oklch(0.44 0.14 20);
+  --muted-red-border: oklch(78.521% 0.12506 19.031 / 0.74);
+  --muted-red-foreground: oklch(0.85 0.08 20);
+  
+  /* Muted Blues */
+  --muted-blue-100: oklch(0.53 0.08 250);
+  --muted-blue-200: oklch(0.47 0.09 250);
+  --muted-blue-300: oklch(0.42 0.10 250);
+  --muted-blue-border: oklch(0.60 0.09 250 / 0.5);
+  --muted-blue-foreground: oklch(0.80 0.06 250);
+  
+  /* Muted Greens */
+  --muted-green-100: oklch(0.55 0.06 160);
+  --muted-green-200: oklch(0.48 0.07 160);
+  --muted-green-300: oklch(0.50 0.05 160);
+  --muted-green-border: oklch(0.62 0.07 160 / 0.5);
+  --muted-green-foreground: oklch(0.82 0.04 160);
+  
+  /* Muted Yellows / Golds */
+  --muted-yellow-100: oklch(0.60 0.10 80);
+  --muted-yellow-200: oklch(0.52 0.11 80);
+  --muted-yellow-300: oklch(0.46 0.12 80);
+  --muted-yellow-border: oklch(0.67 0.11 80 / 0.5);
+  --muted-yellow-foreground: oklch(0.85 0.08 80);
+  
+  /* Muted Purples */
+  --muted-purple-100: oklch(0.53 0.09 290);
+  --muted-purple-200: oklch(0.47 0.10 290);
+  --muted-purple-300: oklch(0.42 0.11 290);
+  --muted-purple-border: oklch(0.60 0.10 290 / 0.5);
+  --muted-purple-foreground: oklch(0.82 0.07 290);
+  
+  /* Muted Oranges */
+  --muted-orange-100: oklch(0.62 0.10 50);
+  --muted-orange-200: oklch(0.52 0.11 50);
+  --muted-orange-300: oklch(0.46 0.12 50);
+  --muted-orange-border: oklch(0.69 0.11 50 / 0.5);
+  --muted-orange-foreground: oklch(0.85 0.08 50);
 }
 
 @layer base {
