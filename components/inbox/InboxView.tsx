@@ -224,35 +224,36 @@ export function InboxView({
   const showEmptyState = hasNoItems && emptyStateConfig;
 
   return (
-    <div className="container mx-auto p-6" suppressHydrationWarning>
-      {showNewDataBanner && (
-        <Card className="p-4 mb-4 bg-blue-500/10 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Inbox className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium">New items are available</span>
+    <div className="h-full flex flex-col" suppressHydrationWarning>
+      <div className="container mx-auto p-6">
+        {showNewDataBanner && (
+          <Card className="p-4 mb-4 bg-blue-500/10 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Inbox className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium">New items are available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleRefreshClick}
+                  size="sm"
+                  variant="default"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh to see updates
+                </Button>
+                <Button
+                  onClick={() => setShowNewDataBanner(false)}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Dismiss
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleRefreshClick}
-                size="sm"
-                variant="default"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh to see updates
-              </Button>
-              <Button
-                onClick={() => setShowNewDataBanner(false)}
-                size="sm"
-                variant="ghost"
-              >
-                Dismiss
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-      <div className="mb-6">
+          </Card>
+        )}
+        <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Inbox className="h-8 w-8" />
@@ -319,20 +320,20 @@ export function InboxView({
               itemCounts={itemCounts}
             />
           </>
-        )}
-      </div>
+        </div>
 
-      {error && (
+        {error && (
+        {error && (
         <Card className="p-4 mb-6 border-destructive">
           <div className="flex items-start gap-2">
             <span className="text-destructive font-medium">Error:</span>
             <span className="text-sm">{error}</span>
           </div>
-        </Card>
-      )}
+          </Card>
+        )}
 
-      {showEmptyState ? (
-        <Card className="p-8">
+        {showEmptyState ? (
+          <Card className="p-8">
           <div className="text-center">
             {emptyStateConfig.icon || <SettingsIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />}
             <h2 className="text-xl font-semibold mb-2">{emptyStateConfig.title}</h2>
@@ -344,9 +345,9 @@ export function InboxView({
                 <a href={emptyStateConfig.actionUrl}>{emptyStateConfig.actionLabel}</a>
               </Button>
             )}
-          </div>
-        </Card>
-      ) : isLoading && totalItems === 0 ? (
+            </div>
+          </Card>
+        ) : isLoading && totalItems === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
           {loadingProgress && (
@@ -362,11 +363,11 @@ export function InboxView({
                 />
               </div>
             </div>
-          )}
-        </div>
-      ) : (
-        <>
-          {loadingProgress && (
+            )}
+          </div>
+        ) : (
+          <>
+            {loadingProgress && (
             <Card className="p-4 mb-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="flex items-center gap-3">
                 <RefreshCw className="h-4 w-4 animate-spin text-primary" />
@@ -383,11 +384,12 @@ export function InboxView({
                   </div>
                 </div>
               </div>
-            </Card>
-          )}
-          <GroupedInboxView groupedItems={filteredItems} markAsRead={markAsRead} />
-        </>
-      )}
+              </Card>
+            )}
+            <GroupedInboxView groupedItems={filteredItems} markAsRead={markAsRead} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
