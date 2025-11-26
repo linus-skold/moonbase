@@ -320,70 +320,70 @@ export function InboxView({
               itemCounts={itemCounts}
             />
           </>
+        )}
         </div>
 
         {error && (
-        {error && (
-        <Card className="p-4 mb-6 border-destructive">
-          <div className="flex items-start gap-2">
-            <span className="text-destructive font-medium">Error:</span>
-            <span className="text-sm">{error}</span>
-          </div>
+          <Card className="p-4 mb-6 border-destructive">
+            <div className="flex items-start gap-2">
+              <span className="text-destructive font-medium">Error:</span>
+              <span className="text-sm">{error}</span>
+            </div>
           </Card>
         )}
 
         {showEmptyState ? (
           <Card className="p-8">
-          <div className="text-center">
-            {emptyStateConfig.icon || <SettingsIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />}
-            <h2 className="text-xl font-semibold mb-2">{emptyStateConfig.title}</h2>
-            <p className="text-muted-foreground mb-4">
-              {emptyStateConfig.description}
-            </p>
-            {emptyStateConfig.actionLabel && emptyStateConfig.actionUrl && (
-              <Button asChild>
-                <a href={emptyStateConfig.actionUrl}>{emptyStateConfig.actionLabel}</a>
-              </Button>
-            )}
+            <div className="text-center">
+              {emptyStateConfig.icon || <SettingsIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />}
+              <h2 className="text-xl font-semibold mb-2">{emptyStateConfig.title}</h2>
+              <p className="text-muted-foreground mb-4">
+                {emptyStateConfig.description}
+              </p>
+              {emptyStateConfig.actionLabel && emptyStateConfig.actionUrl && (
+                <Button asChild>
+                  <a href={emptyStateConfig.actionUrl}>{emptyStateConfig.actionLabel}</a>
+                </Button>
+              )}
             </div>
           </Card>
         ) : isLoading && totalItems === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 gap-4">
-          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-          {loadingProgress && (
-            <div className="w-full max-w-md space-y-2">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{loadingProgress.stage}</span>
-                <span>{loadingProgress.current} / {loadingProgress.total}</span>
+          <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            {loadingProgress && (
+              <div className="w-full max-w-md space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>{loadingProgress.stage}</span>
+                  <span>{loadingProgress.current} / {loadingProgress.total}</span>
+                </div>
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-300 ease-out"
+                    style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                  />
+                </div>
               </div>
-              <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-300 ease-out"
-                  style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
-                />
-              </div>
-            </div>
             )}
           </div>
         ) : (
           <>
             {loadingProgress && (
-            <Card className="p-4 mb-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex items-center gap-3">
-                <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                <div className="flex-1 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{loadingProgress.stage}</span>
-                    <span className="text-muted-foreground">{loadingProgress.current} / {loadingProgress.total}</span>
-                  </div>
-                  <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all duration-300 ease-out"
-                      style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
-                    />
+              <Card className="p-4 mb-4 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                  <div className="flex-1 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{loadingProgress.stage}</span>
+                      <span className="text-muted-foreground">{loadingProgress.current} / {loadingProgress.total}</span>
+                    </div>
+                    <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300 ease-out"
+                        style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
               </Card>
             )}
             <GroupedInboxView groupedItems={filteredItems} markAsRead={markAsRead} />
