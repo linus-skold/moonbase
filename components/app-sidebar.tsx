@@ -16,6 +16,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import { CustomSidebar } from "@/components/sidebar/custom-sidebar";
 import { VscGithub, VscAzureDevops } from "react-icons/vsc";
@@ -46,14 +47,13 @@ const items = [
 
 interface AppSidebarProps {
   integrations?: any[];
-
-};
+}
 
 export function AppSidebar(props?: AppSidebarProps) {
   const [mounted, setMounted] = useState(false);
   const [isAdoOpen, setIsAdoOpen] = useState(true);
   const [isGhOpen, setIsGhOpen] = useState(true);
-  
+
   const { counts } = useNewItems();
 
   useEffect(() => {
@@ -63,14 +63,14 @@ export function AppSidebar(props?: AppSidebarProps) {
   // Load instances only once when mounted, memoize to prevent re-renders
   const adoInstances = useMemo(() => {
     if (!mounted) return [];
-    const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
+    const storageAdo = create("ado-config", "1.0", AdoConfigSchema);
     const adoConfig = storageAdo.load();
     return adoConfig?.instances || [];
   }, [mounted]);
 
   const ghInstances = useMemo(() => {
     if (!mounted) return [];
-    const storageGh = create('gh-config', '1.0', GhConfigSchema);
+    const storageGh = create("gh-config", "1.0", GhConfigSchema);
     const ghConfig = storageGh.load();
     return ghConfig?.instances || [];
   }, [mounted]);
@@ -119,12 +119,15 @@ export function AppSidebar(props?: AppSidebarProps) {
                         {adoInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
-                              <Link href={`/inbox/${instance.id}`} className="relative pr-8">
+                              <Link
+                                href={`/inbox/${instance.id}`}
+                                className="relative pr-8"
+                              >
                                 <span>{instance.name}</span>
                                 {counts[instance.id] > 0 && (
-                                  <span className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground animate-pulse">
+                                  <SidebarMenuBadge>
                                     {counts[instance.id]}
-                                  </span>
+                                  </SidebarMenuBadge>
                                 )}
                               </Link>
                             </SidebarMenuSubButton>
@@ -135,7 +138,7 @@ export function AppSidebar(props?: AppSidebarProps) {
                   </SidebarMenuItem>
                 </Collapsible>
               )}
-              
+
               {ghInstances.length > 0 && (
                 <Collapsible
                   open={isGhOpen}
@@ -155,12 +158,15 @@ export function AppSidebar(props?: AppSidebarProps) {
                         {ghInstances.map((instance) => (
                           <SidebarMenuSubItem key={instance.id}>
                             <SidebarMenuSubButton asChild>
-                              <Link href={`/inbox/${instance.id}`} className="relative pr-8">
+                              <Link
+                                href={`/inbox/${instance.id}`}
+                                className="relative pr-8"
+                              >
                                 <span>{instance.name}</span>
                                 {counts[instance.id] > 0 && (
-                                  <span className="absolute right-1 top-1/2 -translate-y-1/2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground animate-pulse">
+                                  <SidebarMenuBadge>
                                     {counts[instance.id]}
-                                  </span>
+                                  </SidebarMenuBadge>
                                 )}
                               </Link>
                             </SidebarMenuSubButton>
