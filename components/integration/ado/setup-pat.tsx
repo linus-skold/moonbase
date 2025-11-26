@@ -19,6 +19,7 @@ import { fetchAuthenticatedUserId } from "@/lib/integrations/ado/api";
 
 import { create } from "@/lib/storage";
 import { WarningDialog } from "@/components/warning/WarningDialog";
+import { TrackEvent } from "@/lib/tracking/tracking";
 
 
 interface SetupPatProps {
@@ -157,7 +158,10 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         // environments removed - not part of AdoConfig schema
       };
       storage.save(updatedConfig);
-      if (onComplete) onComplete(true);
+      if (onComplete) {
+        onComplete(true);
+        TrackEvent("ado_pat_instance_added", { defaultBaseUrl: instance.baseUrl?.match(/^https:\/\/dev.azure.com\//) });
+      }
       onOpenChange(false);
     } catch (e) {
       if (onComplete) onComplete(false);

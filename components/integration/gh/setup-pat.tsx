@@ -15,9 +15,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
 import { create } from "@/lib/storage";
-import { type GhInstance, type GhConfig, GhInstanceSchema, GhConfigSchema } from "@/lib/gh/schema/instance.schema";
+import { type GhInstance, GhInstanceSchema, GhConfigSchema } from "@/lib/gh/schema/instance.schema";
 import { fetchAuthenticatedUser } from "@/lib/integrations/gh/api";
 import { WarningDialog } from "@/components/warning/WarningDialog";
+import { TrackEvent } from "@/lib/tracking/tracking";
 
 interface SetupPatProps {
   open: boolean;
@@ -143,7 +144,10 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         // environments and pinnedRepositories removed - not part of GhConfig schema
       };
       storage.save(updatedConfig);
-      if (onComplete) onComplete(true);
+      if (onComplete) {
+        onComplete(true);
+        TrackEvent("github_pat_instance_added", {});
+      } 
       onOpenChange(false);
     } catch (e) {
       if (onComplete) onComplete(false);
