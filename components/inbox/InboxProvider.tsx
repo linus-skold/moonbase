@@ -281,6 +281,11 @@ export function InboxProvider({
         setGroupedItems(markedItems);
         setNewItemsCount(countNewItems(markedItems));
         setLastRefreshTime(new Date());
+        
+        // Notify sidebar to refresh its counts
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('inbox-items-updated'));
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch inbox items"
@@ -302,6 +307,32 @@ export function InboxProvider({
       refresh();
     }
   }, [mounted, autoFetch, dataSources, refresh]);
+
+  // Listen for config updates and refresh when settings change
+  useEffect(() => {
+    if (!mounted) return;
+
+    const handleConfigUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ instanceId: string; type: string }>;
+      const { instanceId: updatedInstanceId, type } = customEvent.detail || {};
+      
+      // Check if this config update affects any of our data sources
+      const affectsUs = dataSources.some(
+        ds => ds.id === updatedInstanceId || (instanceId && instanceId === updatedInstanceId)
+      );
+      
+      if (affectsUs) {
+        // Force refresh to apply new configuration
+        refresh(true);
+      }
+    };
+
+    window.addEventListener('inbox-config-updated', handleConfigUpdate);
+    
+    return () => {
+      window.removeEventListener('inbox-config-updated', handleConfigUpdate);
+    };
+  }, [mounted, dataSources, instanceId, refresh]);
 
   // Set up background polling
   useEffect(() => {

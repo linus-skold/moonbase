@@ -31,6 +31,8 @@ import StatusMapper from "@/components/status-mapper/StatusMapper";
 import { StatusMapperContent } from "@/components/status-mapper/StatusMapperContent";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import InboxCache from "@/lib/utils/inbox-cache";
+import { clearSeenItems } from "@/lib/utils/new-items-tracker";
 
 export default function Page() {
   const storage = create("ado-config", "1.0", AdoConfigSchema);
@@ -44,7 +46,6 @@ export default function Page() {
   const [showToken, setShowToken] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const [statesInput, setStatesInput] = useState<string>("");
 
 
   // Helper to safely parse date
@@ -105,7 +106,21 @@ export default function Page() {
     const success = storage.save({ ...config, instances: updatedInstances });
     if (success) {
       setHasChanges(false);
-      toast.success("Instance saved successfully");
+      
+      // Clear the cache for this instance to force a fresh fetch with new settings
+      InboxCache.clearCachedItems('ado', instanceId);
+      
+      // Clear the seen items tracker to reset badge counts
+      clearSeenItems('ado', instanceId);
+      
+      // Trigger a refresh event so the inbox will reload with new filters
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('inbox-config-updated', {
+          detail: { instanceId, type: 'ado' }
+        }));
+      }
+      
+      toast.success("Instance saved successfully. Cache and read status cleared - refresh your inbox to apply changes.");
     } else {
       toast.error("Failed to save instance");
     }
@@ -316,7 +331,7 @@ export default function Page() {
           <Input 
             type="text" 
             placeholder="Closed, Removed, Done"
-            onChange ={(e) => { updateInstance({ ignoredWorkItemStates: e.target.value ? e.target.value.split(',').map(s => s.trim()) : undefined }); setStatesInput(e.target.value); }}
+            onChange ={(e) => { updateInstance({ ignoredWorkItemStates: e.target.value ? e.target.value.split(',').map(s => s.trim()) : undefined }); }}
             value={instance.ignoredWorkItemStates ? instance.ignoredWorkItemStates.join(', ') : ''}
           />
           <CardDescription className="mt-1 mb-4">
