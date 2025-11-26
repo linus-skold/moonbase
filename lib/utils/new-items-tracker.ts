@@ -69,3 +69,19 @@ export const getNewItemsCount = (
   const seenItems = loadSeenItems(sourceId, instanceId);
   return itemIds.filter((id) => !seenItems.has(id)).length;
 };
+
+export const clearSeenItems = (
+  sourceId: string,
+  instanceId?: string
+): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const key = getStorageKey(sourceId, instanceId);
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error("Failed to clear seen items:", error);
+  }
+};

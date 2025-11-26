@@ -20,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/datepicker/DatePicker';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import InboxCache from '@/lib/utils/inbox-cache';
+import { clearSeenItems } from '@/lib/utils/new-items-tracker';
 
 export default function Page() {
   const storage = create('gh-config', '1.0', GhConfigSchema);
@@ -89,7 +91,21 @@ export default function Page() {
     const success = storage.save({ ...config, instances: updatedInstances });
     if (success) {
       setHasChanges(false);
-      toast.success('Instance saved successfully');
+      
+      // Clear the cache for this instance to force a fresh fetch with new settings
+      InboxCache.clearCachedItems('github', instanceId);
+      
+      // Clear the seen items tracker to reset badge counts
+      clearSeenItems('github', instanceId);
+      
+      // Trigger a refresh event so the inbox will reload with new filters
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('inbox-config-updated', {
+          detail: { instanceId, type: 'github' }
+        }));
+      }
+      
+      toast.success('Instance saved successfully. Cache and read status cleared - refresh your inbox to apply changes.');
     } else {
       toast.error('Failed to save instance');
     }
