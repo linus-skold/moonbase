@@ -208,21 +208,16 @@ export class AdoClient {
       pullRequests = prBatches.flat();
     }
 
-    // Filter PRs: only include if I'm the creator OR if I've actively reviewed (voted)
+    // Filter PRs: only include if I'm the creator OR if I'm a reviewer
     pullRequests = pullRequests.filter((pr) => {
       // Include if I created it
       if (pr.createdBy?.id === this.userId) {
         return true;
       }
 
-      // Include if I'm a reviewer who has voted (not just auto-added)
+      // Include if I'm a reviewer (regardless of whether I've voted yet)
       const myReview = pr.reviewers?.find((r) => r.id === this.userId);
-      if (myReview && myReview.vote !== 0) {
-        return true;
-      }
-
-      // Include if I'm required reviewer (even if not voted yet)
-      if (myReview && myReview.isRequired) {
+      if (myReview) {
         return true;
       }
 
