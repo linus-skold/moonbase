@@ -9,6 +9,7 @@ import { create } from "@/lib/storage";
 import { type AdoInstance, type AdoConfig, AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
 import { type GhInstance, type GhConfig, GhConfigSchema } from "@/lib/gh/schema/instance.schema";
 import { UserSettingsCard } from "@/components/settings/UserSettingsCard";
+import Link from "next/link";
 
 export default function SettingsPage() {
 
@@ -75,10 +76,10 @@ export default function SettingsPage() {
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-2">
           <Button variant="ghost" size="sm" asChild>
-            <a href="/">
+            <Link href="/">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Home (update to previous page)
-            </a>
+            </Link>
           </Button>
         </div>
         <h1 className="text-3xl font-bold">Settings</h1>
