@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { InboxLayout } from '@/components/inbox/InboxLayout';
+import { InboxView } from '@/components/inbox/InboxView';
 import { useInbox } from '@/components/inbox/InboxContext';
 import { Settings } from 'lucide-react';
 import { create } from '@/lib/storage';
@@ -51,10 +51,10 @@ export default function Page({ params }: PageProps) {
   }, [slug]);
   
   // Use the global inbox context but filter by instance ID
-  const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead, loadingProgress } = useInbox(slug);
+  const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead } = useInbox(slug);
   
   return (
-    <InboxLayout
+    <InboxView
       title={instanceName ? `${instanceName} Inbox` : 'Inbox'}
       groupedItems={groupedItems}
       isLoading={isLoading}
@@ -64,7 +64,6 @@ export default function Page({ params }: PageProps) {
       newItemsCount={newItemsCount}
       markAllAsRead={markAllAsRead}
       markAsRead={markAsRead}
-      loadingProgress={loadingProgress}
       emptyStateConfig={
         !isConfigured
           ? {

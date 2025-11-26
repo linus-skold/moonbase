@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { InboxLayout } from '@/components/inbox/InboxLayout';
+import { InboxView } from '@/components/inbox/InboxView';
 import { useInbox } from '@/components/inbox/InboxContext';
 import { Inbox } from 'lucide-react';
 
@@ -9,7 +9,7 @@ export default function Home() {
   const { groupedItems, isLoading, error, refresh, isConfigured, configUrl, lastRefreshTime, newItemsCount, markAsRead, markAllAsRead, loadingProgress } = useInbox();
 
   return (
-    <InboxLayout
+    <InboxView
       title="Home"
       description="Your unified inbox across all integrations"
       groupedItems={groupedItems}

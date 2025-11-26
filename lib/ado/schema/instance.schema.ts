@@ -12,6 +12,8 @@ export const AdoInstanceSchema = z.object({
   userId: z.string(),
   statusMappings: StatusMapping.array().optional(),
   expiresAt: z.coerce.date(),
+  ignoredWorkItemStates: z.array(z.string()).optional(),
+  customWorkItemQuery: z.string().optional(),
 });
 export type AdoInstance = z.infer<typeof AdoInstanceSchema>;
 
