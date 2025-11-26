@@ -45,8 +45,7 @@ export default function Page() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-
-
+  const [ ignoreStates, setIgnoreStates ] = useState<string>(''); 
 
   // Helper to safely parse date
   const safeParseDate = (dateValue: any): Date => {
@@ -87,6 +86,12 @@ export default function Page() {
     setLoading(false);
   }, [instanceId, router]);
 
+  useEffect(() => {
+    if (!instance) return;
+    // Initialize ignoreStates state from instance data
+    setIgnoreStates(instance.ignoredWorkItemStates ? instance.ignoredWorkItemStates.join(', ') : '');
+  }, [instance]);
+
   const updateInstance = (updates: Partial<AdoInstance>) => {
     setInstance((prev) => (prev ? { ...prev, ...updates } : null));
     setHasChanges(true);
@@ -98,9 +103,17 @@ export default function Page() {
     const config = storage.load();
     if (!config) return;
 
+    // Process ignoreStates string into array before saving
+    const processedInstance = {
+      ...instance,
+      ignoredWorkItemStates: ignoreStates.trim() 
+        ? ignoreStates.split(',').map(s => s.trim()).filter(s => s.length > 0)
+        : undefined
+    };
+
     // Instance is already in correct format with proper types
     const updatedInstances = config.instances.map((inst) =>
-      inst.id === instanceId ? instance : inst
+      inst.id === instanceId ? processedInstance : inst
     );
 
     const success = storage.save({ ...config, instances: updatedInstances });
@@ -331,8 +344,11 @@ export default function Page() {
           <Input 
             type="text" 
             placeholder="Closed, Removed, Done"
-            onChange ={(e) => { updateInstance({ ignoredWorkItemStates: e.target.value ? e.target.value.split(',').map(s => s.trim()) : undefined }); }}
-            value={instance.ignoredWorkItemStates ? instance.ignoredWorkItemStates.join(', ') : ''}
+            onChange={(e) => { 
+              setIgnoreStates(e.target.value);
+              setHasChanges(true);
+            }}
+            value={ignoreStates}
           />
           <CardDescription className="mt-1 mb-4">
             <p>
