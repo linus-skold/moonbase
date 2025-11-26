@@ -1,13 +1,22 @@
-'use client';
+"use client";
 
-import { useSearchParams, useRouter } from 'next/navigation';
-import React from 'react';
-import { create } from '@/lib/storage'
-import { type AdoInstance, type AdoConfig, AdoInstanceSchema, AdoConfigSchema } from '@/lib/ado/schema/instance.schema';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Trash2, Eye, EyeOff } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { create } from "@/lib/storage";
+import {
+  type AdoInstance,
+  AdoConfigSchema,
+} from "@/lib/ado/schema/instance.schema";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Save, Trash2, Eye, EyeOff } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -15,34 +24,37 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { DatePicker } from '@/components/datepicker/DatePicker';
-import StatusMapper from '@/components/status-mapper/StatusMapper';
-import { StatusMapperContent } from '@/components/status-mapper/StatusMapperContent';
-import { toast } from 'sonner';
-import { Separator } from '@/components/ui/separator';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/datepicker/DatePicker";
+import StatusMapper from "@/components/status-mapper/StatusMapper";
+import { StatusMapperContent } from "@/components/status-mapper/StatusMapperContent";
+import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
 
 export default function Page() {
-  const storage = create('ado-config', '1.0', AdoConfigSchema);
+  const storage = create("ado-config", "1.0", AdoConfigSchema);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const instanceId = searchParams.get('instanceId');
-  
-  const [instance, setInstance] = React.useState<AdoInstance | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [showToken, setShowToken] = React.useState(false);
-  const [hasChanges, setHasChanges] = React.useState(false);
+  const instanceId = searchParams.get("instanceId");
+
+  const [instance, setInstance] = useState<AdoInstance | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const [statesInput, setStatesInput] = useState<string>("");
+
 
   // Helper to safely parse date
   const safeParseDate = (dateValue: any): Date => {
     if (!dateValue) return new Date();
-    
+
     if (dateValue instanceof Date) {
       return isNaN(dateValue.getTime()) ? new Date() : dateValue;
     }
-    
+
     try {
       const parsed = new Date(dateValue);
       return isNaN(parsed.getTime()) ? new Date() : parsed;
@@ -51,15 +63,17 @@ export default function Page() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!instanceId) {
-      router.push('/settings');
+      router.push("/settings");
       return;
     }
 
     const config = storage.load();
-    const foundInstance = config?.instances?.find((inst) => inst.id === instanceId);
-    
+    const foundInstance = config?.instances?.find(
+      (inst) => inst.id === instanceId
+    );
+
     if (foundInstance) {
       // Ensure expiresAt is a valid Date object when loading from storage
       setInstance({
@@ -67,13 +81,13 @@ export default function Page() {
         expiresAt: safeParseDate(foundInstance.expiresAt),
       });
     } else {
-      router.push('/settings');
+      router.push("/settings");
     }
     setLoading(false);
   }, [instanceId, router]);
 
   const updateInstance = (updates: Partial<AdoInstance>) => {
-    setInstance((prev) => prev ? { ...prev, ...updates } : null);
+    setInstance((prev) => (prev ? { ...prev, ...updates } : null));
     setHasChanges(true);
   };
 
@@ -91,9 +105,9 @@ export default function Page() {
     const success = storage.save({ ...config, instances: updatedInstances });
     if (success) {
       setHasChanges(false);
-      toast.success('Instance saved successfully');
+      toast.success("Instance saved successfully");
     } else {
-      toast.error('Failed to save instance');
+      toast.error("Failed to save instance");
     }
   };
 
@@ -111,9 +125,9 @@ export default function Page() {
     const success = storage.save({ ...config, instances: updatedInstances });
     if (success) {
       setInstance(updatedInstance);
-      toast.success('Status mappings updated successfully');
+      toast.success("Status mappings updated successfully");
     } else {
-      toast.error('Failed to update status mappings');
+      toast.error("Failed to update status mappings");
     }
   };
 
@@ -123,14 +137,16 @@ export default function Page() {
     const config = storage.load();
     if (!config) return;
 
-    const updatedInstances = config.instances.filter((inst) => inst.id !== instanceId);
+    const updatedInstances = config.instances.filter(
+      (inst) => inst.id !== instanceId
+    );
     const success = storage.save({ ...config, instances: updatedInstances });
-    
+
     if (success) {
-      toast.success('Instance deleted successfully');
-      router.push('/settings');
+      toast.success("Instance deleted successfully");
+      router.push("/settings");
     } else {
-      toast.error('Failed to delete instance');
+      toast.error("Failed to delete instance");
     }
   };
 
@@ -150,14 +166,18 @@ export default function Page() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/settings")}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Settings
           </Button>
           <div className="flex gap-2">
-            <Button 
-              variant="default" 
-              size="sm" 
+            <Button
+              variant="default"
+              size="sm"
               onClick={handleSave}
               disabled={!hasChanges}
               className="cursor-pointer hover:opacity-90 transition-opacity"
@@ -165,9 +185,9 @@ export default function Page() {
               <Save className="h-4 w-4 mr-2" />
               Save Changes
             </Button>
-            <Button 
-              variant="destructive" 
-              size="sm" 
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => setDeleteDialogOpen(true)}
               className="cursor-pointer hover:opacity-90 transition-opacity"
             >
@@ -189,7 +209,7 @@ export default function Page() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2 mb-4">
-            <input
+            <Input
               type="checkbox"
               id="enabled-toggle"
               checked={instance.enabled}
@@ -211,11 +231,15 @@ export default function Page() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Organization</label>
+              <Label className="block text-sm font-medium mb-1">
+                Organization
+              </Label>
               <Input
                 type="text"
-                value={instance.organization ?? ''}
-                onChange={(e) => updateInstance({ organization: e.target.value || undefined })}
+                value={instance.organization ?? ""}
+                onChange={(e) =>
+                  updateInstance({ organization: e.target.value || undefined })
+                }
                 placeholder="your-org"
               />
             </div>
@@ -223,18 +247,24 @@ export default function Page() {
               <label className="block text-sm font-medium mb-1">Base URL</label>
               <Input
                 type="text"
-                value={instance.baseUrl ?? ''}
-                onChange={(e) => updateInstance({ baseUrl: e.target.value || undefined })}
+                value={instance.baseUrl ?? ""}
+                onChange={(e) =>
+                  updateInstance({ baseUrl: e.target.value || undefined })
+                }
                 placeholder="https://dev.azure.com/your-org"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1">Personal Access Token</label>
+              <label className="block text-sm font-medium mb-1">
+                Personal Access Token
+              </label>
               <div className="relative">
                 <Input
-                  type={showToken ? 'text' : 'password'}
+                  type={showToken ? "text" : "password"}
                   value={instance.personalAccessToken}
-                  onChange={(e) => updateInstance({ personalAccessToken: e.target.value })}
+                  onChange={(e) =>
+                    updateInstance({ personalAccessToken: e.target.value })
+                  }
                   placeholder="your-pat-token"
                   className="pr-10"
                 />
@@ -243,15 +273,23 @@ export default function Page() {
                   onClick={() => setShowToken(!showToken)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showToken ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
             <div>
               <DatePicker
                 label="PAT Expires"
-                value={instance.expiresAt ? new Date(instance.expiresAt) : undefined}
-                onChange={(date) => updateInstance({ expiresAt: date || new Date() })}
+                value={
+                  instance.expiresAt ? new Date(instance.expiresAt) : undefined
+                }
+                onChange={(date) =>
+                  updateInstance({ expiresAt: date || new Date() })
+                }
                 description="PAT expiration date"
               />
             </div>
@@ -259,19 +297,51 @@ export default function Page() {
 
           <Separator className="my-6" />
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Status Mappings</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Configure how Azure DevOps work item states map to your workflow
+          <Label className="text-xl font-semibold mb-2">Queries</Label>
+          <Label className="text-lg font-semibold mb-2">
+            Custom Work Item Query
+          </Label>
+          <Input 
+            type="text" 
+            placeholder="SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.AssignedTo] = @Me..."
+            value={instance.customWorkItemQuery || ''}
+            onChange={(e) => updateInstance({ customWorkItemQuery: e.target.value || undefined })}
+          />
+          <CardDescription className="mt-1 mb-4">
+            (Optional) Provide a custom WIQL query to filter work items fetched
+            into your inbox. If left blank, the default query will be used.
+          </CardDescription>
+
+          <Label className="text-lg font-semibold mb-2">Ignore states</Label>
+          <Input 
+            type="text" 
+            placeholder="Closed, Removed, Done"
+            onChange ={(e) => { updateInstance({ ignoredWorkItemStates: e.target.value ? e.target.value.split(',').map(s => s.trim()) : undefined }); setStatesInput(e.target.value); }}
+            value={instance.ignoredWorkItemStates ? instance.ignoredWorkItemStates.join(', ') : ''}
+          />
+          <CardDescription className="mt-1 mb-4">
+            <p>
+              (Optional) Provide a comma-separated list of states to ignore when
+              fetching work items into your inbox. If left blank, no states will
+              be ignored.
             </p>
-            <StatusMapper>
-              <StatusMapperContent
-                instanceId={instance.id}
-                initialMappings={instance.statusMappings || []}
-                onSave={handleStatusMappingsSave}
-              />
-            </StatusMapper>
-          </div>
+            Custom queries will override this setting.
+          </CardDescription>
+
+          <Separator className="my-6" />
+
+          <Label className="text-lg font-semibold mb-2">Status Mappings</Label>
+          <CardDescription className="mt-1 mb-2">
+            Configure how Azure DevOps work item states map to your workflow
+          </CardDescription>
+
+          <StatusMapper>
+            <StatusMapperContent
+              instanceId={instance.id}
+              initialMappings={instance.statusMappings || []}
+              onSave={handleStatusMappingsSave}
+            />
+          </StatusMapper>
         </CardContent>
       </Card>
 
@@ -281,14 +351,22 @@ export default function Page() {
           <DialogHeader>
             <DialogTitle>Delete Instance</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this instance? This action cannot be undone.
+              Are you sure you want to delete this instance? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button className="cursor-pointer" variant="destructive" onClick={handleDelete}>
+            <Button
+              className="cursor-pointer"
+              variant="destructive"
+              onClick={handleDelete}
+            >
               Delete
             </Button>
           </DialogFooter>

@@ -18,7 +18,7 @@ import type { GroupedInboxItems, InboxItem } from '@/lib/schema/inbox.schema';
 import { RefreshCw, Settings as SettingsIcon, Inbox } from 'lucide-react';
 import { SuggestionType, SearchSuggestion, SearchSuggestions } from '@/lib/schema/suggestion.schema';
 
-export interface InboxLayoutProps {
+export interface InboxViewProps {
   title?: string;
   description?: string;
   groupedItems: GroupedInboxItems;
@@ -40,7 +40,7 @@ export interface InboxLayoutProps {
   };
 }
 
-export function InboxLayout({
+export function InboxView({
   title = 'Inbox',
   description,
   groupedItems,
@@ -53,7 +53,7 @@ export function InboxLayout({
   markAsRead,
   loadingProgress,
   emptyStateConfig,
-}: InboxLayoutProps) {
+}: InboxViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
