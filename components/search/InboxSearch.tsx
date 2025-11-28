@@ -23,7 +23,7 @@ interface InboxSearchProps {
 export function InboxSearch({
   value,
   onChange,
-  placeholder = "Search inbox items... (try @project, @org, @repo, @status, @assignee, @type)",
+  placeholder = "@project, @org, @repo, @status, @assignee, @type",
   suggestions = [],
 }: InboxSearchProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -126,7 +126,7 @@ export function InboxSearch({
   };
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative w-full" ref={containerRef}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
         ref={inputRef}
