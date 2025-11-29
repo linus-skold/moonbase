@@ -69,6 +69,8 @@ const getItemIcon = (type: InboxItem['type'], workItemKind?: WorkItemKind) => {
       return getWorkItemKindIcon(workItemKind);
     case 'pipeline':
       return <Activity className="h-4 w-4" />;
+    default:
+      return <FileText className="h-4 w-4" />;
   }
 };
 
