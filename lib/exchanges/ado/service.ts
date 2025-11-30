@@ -7,9 +7,9 @@ import type { AdoInstance } from './schema/instance.schema';
 import type { AdoPullRequest } from './schema/pr.schema';
 import type { AdoWorkItem } from './schema/work-item.schema';
 import type { AdoPipelineRun } from './schema/pipeline.schema';
-import type { GroupedInboxItems, InboxItem } from '../schema/inbox.schema';
-import { createWorkItemClassifier } from '../utils/workItemClassifier';
-import { WorkItemKindMapping } from '../schema/workItemKind.schema';
+import type { GroupedInboxItems, InboxItem } from '../../schema/inbox.schema';
+import { createWorkItemClassifier } from '../../utils/workItemClassifier';
+import { WorkItemKindMapping } from '../../schema/workItemKind.schema';
 
 
 const ADO_WORK_ITEM_KIND_MAPPING: WorkItemKindMapping = {

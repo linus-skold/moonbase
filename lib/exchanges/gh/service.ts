@@ -3,9 +3,9 @@
 import { GhClient } from './client';
 import type { GhConfig } from './schema/config.schema';
 import type { GhInstance } from './schema/instance.schema';
-import type { GroupedInboxItems, InboxItem } from '../schema/inbox.schema';
-import { createWorkItemClassifier, normalizeLabels } from '../utils/workItemClassifier';
-import type { WorkItemKindMapping } from '../schema/workItemKind.schema';
+import type { GroupedInboxItems, InboxItem } from '../../schema/inbox.schema';
+import { createWorkItemClassifier, normalizeLabels } from '../../utils/workItemClassifier';
+import type { WorkItemKindMapping } from '../../schema/workItemKind.schema';
 
 /**
  * GitHub issue classification mappings

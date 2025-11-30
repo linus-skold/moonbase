@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StatusMapping } from '../../schema/statusMapping.schema';
+import { StatusMapping } from '../../../schema/statusMapping.schema';
 
 export const AdoInstanceSchema = z.object({
   instanceType: z.literal('ado').default('ado'),
