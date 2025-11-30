@@ -15,8 +15,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
 import { create } from "@/lib/storage";
-import { type GhInstance, GhInstanceSchema, GhConfigSchema } from "@/lib/gh/schema/instance.schema";
-import { fetchAuthenticatedUser } from "@/lib/integrations/gh/api";
+import { type GhInstance, GhInstanceSchema, GhConfigSchema } from "@/lib/exchanges/gh/schema/instance.schema";
+import { fetchAuthenticatedUser } from "@/lib/exchanges/gh/api";
 import { WarningDialog } from "@/components/warning/WarningDialog";
 import { TrackEvent } from "@/lib/tracking/tracking";
 

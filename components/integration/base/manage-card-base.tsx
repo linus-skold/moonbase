@@ -6,8 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { type AdoInstance } from "@/lib/ado/schema/instance.schema";
-import { type GhInstance } from "@/lib/gh/schema/instance.schema";
+import { type AdoInstance } from "@/lib/exchanges/ado/schema/instance.schema";
+import { type GhInstance } from "@/lib/exchanges/gh/schema/instance.schema";
 import { VscAzureDevops } from "react-icons/vsc";
 import { CalendarIcon, Trash2, Power, PowerOff } from "lucide-react";
 import {
@@ -21,8 +21,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { create } from "@/lib/storage";
-import { AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
-import { GhConfigSchema } from "@/lib/gh/schema/instance.schema";
+import { AdoConfigSchema } from "@/lib/exchanges/ado/schema/instance.schema";
+import { GhConfigSchema } from "@/lib/exchanges/gh/schema/instance.schema";
 
 type InstanceType = AdoInstance | GhInstance;
 

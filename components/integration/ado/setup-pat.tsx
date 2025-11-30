@@ -14,8 +14,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
-import { type AdoInstance, type AdoConfig, AdoInstanceSchema, AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
-import { fetchAuthenticatedUserId } from "@/lib/integrations/ado/api";
+import { type AdoInstance, type AdoConfig, AdoInstanceSchema, AdoConfigSchema } from "@/lib/exchanges/ado/schema/instance.schema";
+import { fetchAuthenticatedUserId } from "@/lib/exchanges/ado/api";
 
 import { create } from "@/lib/storage";
 import { WarningDialog } from "@/components/warning/WarningDialog";

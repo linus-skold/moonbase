@@ -1,4 +1,4 @@
-import { type AdoInstance } from "@/lib/ado/schema/instance.schema";
+import { type AdoInstance } from "@/lib/exchanges/ado/schema/instance.schema";
 import { ManageCard } from "../base/manage-card-base";
 import { useRouter } from "next/navigation";
 
