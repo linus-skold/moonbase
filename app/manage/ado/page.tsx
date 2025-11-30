@@ -6,7 +6,7 @@ import { create } from "@/lib/storage";
 import {
   type AdoInstance,
   AdoConfigSchema,
-} from "@/lib/ado/schema/instance.schema";
+} from "@/lib/exchanges/ado/schema/instance.schema";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Trash2, Eye, EyeOff } from "lucide-react";
 import {

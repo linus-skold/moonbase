@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AdoService } from '@/lib/ado/service';
-import type { AdoConfig } from '@/lib/ado/schema/config.schema';
+import { AdoService } from '@/lib/exchanges/ado/service';
+import type { AdoConfig } from '@/lib/exchanges/ado/schema/config.schema';
 
 export async function POST(request: NextRequest) {
   try {

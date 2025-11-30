@@ -3,10 +3,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { getNewItemsCount } from '@/lib/utils/new-items-tracker';
 import { create } from '@/lib/storage';
-import { AdoConfigSchema } from '@/lib/ado/schema/instance.schema';
-import { GhConfigSchema } from '@/lib/gh/schema/instance.schema';
-import { createAdoDataSource } from '@/lib/ado/data-source';
-import { createGhDataSource } from '@/lib/gh/data-source';
+import { AdoConfigSchema } from '@/lib/exchanges/ado/schema/instance.schema';
+import { GhConfigSchema } from '@/lib/exchanges/gh/schema/instance.schema';
+import { createAdoDataSource } from '@/lib/exchanges/ado/data-source';
+import { createGhDataSource } from '@/lib/exchanges/gh/data-source';
 
 interface NewItemsCounts {
   [instanceId: string]: number;

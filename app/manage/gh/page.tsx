@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import React from 'react';
-import { type GhInstance, type GhConfig, GhInstanceSchema, GhConfigSchema } from '@/lib/gh/schema/instance.schema';
+import { type GhInstance, type GhConfig, GhInstanceSchema, GhConfigSchema } from '@/lib/exchanges/gh/schema/instance.schema';
 import { create } from '@/lib/storage'
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Trash2, Eye, EyeOff } from 'lucide-react';

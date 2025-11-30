@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import type { AdoInstance } from '@/lib/ado/schema/instance.schema';
-import type { GhInstance } from '@/lib/gh/schema/instance.schema';
+import type { AdoInstance } from '@/lib/exchanges/ado/schema/instance.schema';
+import type { GhInstance } from '@/lib/exchanges/gh/schema/instance.schema';
 
 type IntegrationInstance = AdoInstance | GhInstance;
 

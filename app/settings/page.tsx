@@ -6,8 +6,8 @@ import React from "react";
 import { useIntegrations } from "@/components/integration/IntegrationProvider";
 
 import { create } from "@/lib/storage";
-import { type AdoInstance, type AdoConfig, AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
-import { type GhInstance, type GhConfig, GhConfigSchema } from "@/lib/gh/schema/instance.schema";
+import { type AdoInstance, type AdoConfig, AdoConfigSchema } from "@/lib/exchanges/ado/schema/instance.schema";
+import { type GhInstance, type GhConfig, GhConfigSchema } from "@/lib/exchanges/gh/schema/instance.schema";
 import { UserSettingsCard } from "@/components/settings/UserSettingsCard";
 import Link from "next/link";
 

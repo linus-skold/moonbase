@@ -5,8 +5,8 @@ import { InboxView } from '@/components/inbox/InboxView';
 import { useInbox } from '@/components/inbox/InboxContext';
 import { Settings } from 'lucide-react';
 import { create } from '@/lib/storage';
-import { AdoConfigSchema } from '@/lib/ado/schema/instance.schema';
-import { GhConfigSchema } from '@/lib/gh/schema/instance.schema';
+import { AdoConfigSchema } from '@/lib/exchanges/ado/schema/instance.schema';
+import { GhConfigSchema } from '@/lib/exchanges/gh/schema/instance.schema';
 import { InstancesEnum } from '@/lib/schema/instances.schema';
 
 interface PageProps {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { AdoInstanceSchema } from '../ado/schema/instance.schema';
-import { GhInstanceSchema } from '../gh/schema/instance.schema';
+import { AdoInstanceSchema } from '../exchanges/ado/schema/instance.schema';
+import { GhInstanceSchema } from '../exchanges/gh/schema/instance.schema';
 import { WorkItemKindSchema } from './workItemKind.schema';
 
 
