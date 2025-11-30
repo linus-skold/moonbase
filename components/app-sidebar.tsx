@@ -27,8 +27,8 @@ import {
 } from "@/components/ui/collapsible";
 
 import { create } from "@/lib/storage";
-import { AdoConfigSchema } from "@/lib/ado/schema/instance.schema";
-import { GhConfigSchema } from "@/lib/gh/schema/instance.schema";
+import { AdoConfigSchema } from "@/lib/exchanges/ado/schema/instance.schema";
+import { GhConfigSchema } from "@/lib/exchanges/gh/schema/instance.schema";
 import { useNewItems } from "@/components/inbox/NewItemsContext";
 
 // Menu items.
