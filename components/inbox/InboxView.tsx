@@ -1,11 +1,10 @@
-'use client';
+"use client";
 
-
-import React, { useState , useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { GroupedInboxView } from '@/components/GroupedInboxView';
-import { InboxSearch } from '@/components/search/InboxSearch';
+import React, { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { GroupedInboxView } from "@/components/GroupedInboxView";
+import { InboxSearch } from "@/components/search/InboxSearch";
 import {
   InboxFilters,
   sortItems,
@@ -13,10 +12,14 @@ import {
   getItemCounts,
   type SortOption,
   type FilterOption,
-} from '@/components/InboxFilters';
-import type { GroupedInboxItems, InboxItem } from '@/lib/schema/inbox.schema';
-import { RefreshCw, Settings as SettingsIcon, Inbox } from 'lucide-react';
-import { SuggestionType, SearchSuggestion, SearchSuggestions } from '@/lib/schema/suggestion.schema';
+} from "@/components/InboxFilters";
+import type { GroupedInboxItems, InboxItem } from "@/lib/schema/inbox.schema";
+import { RefreshCw, Settings as SettingsIcon, Inbox } from "lucide-react";
+import {
+  SuggestionType,
+  SearchSuggestion,
+  SearchSuggestions,
+} from "@/lib/schema/suggestion.schema";
 
 export interface InboxViewProps {
   title?: string;
@@ -30,7 +33,7 @@ export interface InboxViewProps {
   newItemsCount?: number;
   markAllAsRead?: () => void;
   markAsRead?: (itemId: string) => void;
-  loadingProgress?: { current: number, total: number, stage: string };
+  loadingProgress?: { current: number; total: number; stage: string };
   emptyStateConfig?: {
     icon?: React.ReactNode;
     title: string;
@@ -41,7 +44,7 @@ export interface InboxViewProps {
 }
 
 export function InboxView({
-  title = 'Inbox',
+  title = "Inbox",
   description,
   groupedItems,
   isLoading,
@@ -54,9 +57,9 @@ export function InboxView({
   loadingProgress,
   emptyStateConfig,
 }: InboxViewProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
-  const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("date-desc");
+  const [filterBy, setFilterBy] = useState<FilterOption>("all");
   const [showNewDataBanner, setShowNewDataBanner] = useState(false);
   const [lastRefreshTriggered, setLastRefreshTriggered] = useState<number>(0);
 
@@ -65,16 +68,16 @@ export function InboxView({
     const handleNewData = (event: Event) => {
       const customEvent = event as CustomEvent;
       const eventTime = customEvent.detail?.timestamp || Date.now();
-      
+
       // Only show banner if the event is newer than the last manual refresh
       if (eventTime > lastRefreshTriggered) {
         setShowNewDataBanner(true);
       }
     };
 
-    window.addEventListener('inbox-data-available', handleNewData);
+    window.addEventListener("inbox-data-available", handleNewData);
     return () => {
-      window.removeEventListener('inbox-data-available', handleNewData);
+      window.removeEventListener("inbox-data-available", handleNewData);
     };
   }, [lastRefreshTriggered]);
 
@@ -89,15 +92,25 @@ export function InboxView({
   // Extract search suggestions from all items
   const searchSuggestions = useMemo(() => {
     const counts = new Map<SuggestionType, Map<string, number>>();
-    const types: SuggestionType[] = ["project", "org", "repo", "status", "assignee", "type"];
-    
+    const types: SuggestionType[] = [
+      "project",
+      "org",
+      "repo",
+      "status",
+      "assignee",
+      "type",
+    ];
+
     // Initialize count maps
-    types.forEach(type => counts.set(type, new Map()));
+    types.forEach((type) => counts.set(type, new Map()));
 
     // Count occurrences
     Object.values(groupedItems).forEach((group) => {
       group.items.forEach((item) => {
-        const incrementCount = (type: SuggestionType, value: string | undefined) => {
+        const incrementCount = (
+          type: SuggestionType,
+          value: string | undefined
+        ) => {
           if (!value) return;
           const map = counts.get(type)!;
           map.set(value, (map.get(value) || 0) + 1);
@@ -153,18 +166,27 @@ export function InboxView({
         return Object.entries(filters).every(([filterType, filterValues]) => {
           const itemValue = (() => {
             switch (filterType) {
-              case 'project': return item.project.name;
-              case 'org': return item.instance.name;
-              case 'repo': return item.repository?.name;
-              case 'status': return item.status;
-              case 'assignee': return item.assignedTo?.displayName;
-              case 'type': return item.type;
-              default: return undefined;
+              case "project":
+                return item.project.name;
+              case "org":
+                return item.instance.name;
+              case "repo":
+                return item.repository?.name;
+              case "status":
+                return item.status;
+              case "assignee":
+                return item.assignedTo?.displayName;
+              case "type":
+                return item.type;
+              default:
+                return undefined;
             }
           })();
 
           if (!itemValue) return false;
-          return filterValues.some(fv => itemValue.toLowerCase().includes(fv));
+          return filterValues.some((fv) =>
+            itemValue.toLowerCase().includes(fv)
+          );
         });
       });
     }
@@ -231,7 +253,9 @@ export function InboxView({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Inbox className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium">New items are available</span>
+                <span className="text-sm font-medium">
+                  New items are available
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -254,73 +278,72 @@ export function InboxView({
           </Card>
         )}
         <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Inbox className="h-8 w-8" />
-            <div>
-              <h1 className="text-3xl font-bold">{title}</h1>
-              {description && (
-                <p className="text-sm text-muted-foreground">{description}</p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Inbox className="h-8 w-8" />
+              <div>
+                <h1 className="text-3xl font-bold">{title}</h1>
+                {description && (
+                  <p className="text-sm text-muted-foreground">{description}</p>
+                )}
+                {!description && totalItems > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {totalItems} item{totalItems !== 1 ? "s" : ""} across{" "}
+                    {Object.keys(groupedItems).length} project
+                    {Object.keys(groupedItems).length !== 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {newItemsCount > 0 && markAllAsRead && (
+                <Button onClick={markAllAsRead} variant="secondary" size="sm">
+                  Mark All as Read ({newItemsCount})
+                </Button>
               )}
-              {!description && totalItems > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {totalItems} item{totalItems !== 1 ? 's' : ''} across{' '}
-                  {Object.keys(groupedItems).length} project
-                  {Object.keys(groupedItems).length !== 1 ? 's' : ''}
-                </p>
+              {lastRefreshTime && (
+                <span className="text-xs text-muted-foreground">
+                  Last updated: {lastRefreshTime.toLocaleTimeString()}
+                </span>
+              )}
+              {onRefresh && (
+                <Button
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${
+                      isLoading ? "animate-spin" : ""
+                    }`}
+                  />
+                  Refresh
+                </Button>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {newItemsCount > 0 && markAllAsRead && (
-              <Button
-                onClick={markAllAsRead}
-                variant="secondary"
-                size="sm"
-              >
-                Mark All as Read ({newItemsCount})
-              </Button>
-            )}
-            {lastRefreshTime && (
-              <span className="text-xs text-muted-foreground">
-                Last updated: {lastRefreshTime.toLocaleTimeString()}
-              </span>
-            )}
-            {onRefresh && (
-              <Button
-                onClick={onRefresh}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            )}
+          {totalItems > 0 && (
+            <>
+              <div className="mb-4">
+                <InboxSearch
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  suggestions={searchSuggestions}
+                />
+              </div>
 
-          </div>
-        </div>
-
-        {totalItems > 0 && (
-          <>
-            <div className="mb-4">
-              <InboxSearch
-                value={searchQuery}
-                onChange={setSearchQuery}
-                suggestions={searchSuggestions}
+              <InboxFilters
+                sortBy={sortBy}
+                filterBy={filterBy}
+                onSortChange={setSortBy}
+                onFilterChange={setFilterBy}
+                itemCounts={itemCounts}
               />
-            </div>
-
-            <InboxFilters
-              sortBy={sortBy}
-              filterBy={filterBy}
-              onSortChange={setSortBy}
-              onFilterChange={setFilterBy}
-              itemCounts={itemCounts}
-            />
-          </>
-        )}
+            </>
+          )}
         </div>
 
         {error && (
@@ -335,14 +358,20 @@ export function InboxView({
         {showEmptyState ? (
           <Card className="p-8">
             <div className="text-center">
-              {emptyStateConfig.icon || <SettingsIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />}
-              <h2 className="text-xl font-semibold mb-2">{emptyStateConfig.title}</h2>
+              {emptyStateConfig.icon || (
+                <SettingsIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              )}
+              <h2 className="text-xl font-semibold mb-2">
+                {emptyStateConfig.title}
+              </h2>
               <p className="text-muted-foreground mb-4">
                 {emptyStateConfig.description}
               </p>
               {emptyStateConfig.actionLabel && emptyStateConfig.actionUrl && (
                 <Button asChild>
-                  <a href={emptyStateConfig.actionUrl}>{emptyStateConfig.actionLabel}</a>
+                  <a href={emptyStateConfig.actionUrl}>
+                    {emptyStateConfig.actionLabel}
+                  </a>
                 </Button>
               )}
             </div>
@@ -354,12 +383,18 @@ export function InboxView({
               <div className="w-full max-w-md space-y-2">
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>{loadingProgress.stage}</span>
-                  <span>{loadingProgress.current} / {loadingProgress.total}</span>
+                  <span>
+                    {loadingProgress.current} / {loadingProgress.total}
+                  </span>
                 </div>
                 <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-primary transition-all duration-300 ease-out"
-                    style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                    style={{
+                      width: `${
+                        (loadingProgress.current / loadingProgress.total) * 100
+                      }%`,
+                    }}
                   />
                 </div>
               </div>
@@ -373,20 +408,32 @@ export function InboxView({
                   <RefreshCw className="h-4 w-4 animate-spin text-primary" />
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{loadingProgress.stage}</span>
-                      <span className="text-muted-foreground">{loadingProgress.current} / {loadingProgress.total}</span>
+                      <span className="font-medium">
+                        {loadingProgress.stage}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {loadingProgress.current} / {loadingProgress.total}
+                      </span>
                     </div>
                     <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-primary transition-all duration-300 ease-out"
-                        style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+                        style={{
+                          width: `${
+                            (loadingProgress.current / loadingProgress.total) *
+                            100
+                          }%`,
+                        }}
                       />
                     </div>
                   </div>
                 </div>
               </Card>
             )}
-            <GroupedInboxView groupedItems={filteredItems} markAsRead={markAsRead} />
+            <GroupedInboxView
+              groupedItems={filteredItems}
+              markAsRead={markAsRead}
+            />
           </>
         )}
       </div>

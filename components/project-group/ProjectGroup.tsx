@@ -1,8 +1,7 @@
-import type { GroupedInboxItems } from "@/lib/schema/inbox.schema";
-import { ChevronDown } from "lucide-react";
 import React from "react";
-import { InboxItemCard } from "@/components/InboxItemCard";
-import { InstanceProvider } from "@/components/inbox/InstanceContext";
+
+import type { InboxItem } from "@/lib/schema/inbox.schema";
+import { ChevronDown, Mail, MailOpen, MoreVertical } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -10,12 +9,23 @@ import {
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { VscAzureDevops, VscGitCommit, VscGithub } from "react-icons/vsc";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "../ui/card";
+import { ItemStatusIndicator } from "../inbox-card/ItemStatusIndicator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { Button } from "../ui/button";
+
 
 const getInstanceIcon = (instanceType: string) => {
   switch (instanceType) {
-    case 'ado':
+    case "ado":
       return VscAzureDevops;
-    case 'gh':
+    case "gh":
       return VscGithub;
     default:
       return VscGitCommit; // Fallback icon
@@ -23,53 +33,104 @@ const getInstanceIcon = (instanceType: string) => {
 };
 
 const integrationColor: Record<string, string> = {
-  ado: 'text-blue-600',
+  ado: "text-blue-600",
 };
 
-
-interface ProjectCardComponentProps {
-  group: GroupedInboxItems[string];
+type ProjectCardComponentProps = {
+  group: {
+    projectName: string;
+    instanceName: string;
+  };
   instanceType?: string;
-}
+  children?: React.ReactNode;
+  className?: string;
+};
 
-export const ProjectCardComponent = ({group, instanceType }: ProjectCardComponentProps) => {
+export const ProjectCardComponent = ({
+  group,
+  instanceType,
+  children,
+}: ProjectCardComponentProps) => {
   const [expanded, setExpanded] = React.useState(false);
 
-  const IntegrationIcon = getInstanceIcon(instanceType || '');
-  
-  // Count new items
-  const newItemsCount = group.items.filter(item => item.isNew).length;
+  const IntegrationIcon = getInstanceIcon(instanceType || "");
+
+  const childCount = React.Children.count(children);
+  const hasNew = React.Children.toArray(children).some((child) => {
+    if (React.isValidElement(child)) {
+      const item = (child?.props as any)?.item as InboxItem | undefined;
+      return item?.isNew;
+    }
+    return false;
+  });
 
   return (
-    <Collapsible open={expanded} onOpenChange={setExpanded} className="">
-      <CollapsibleTrigger className="w-full px-4 flex items-center gap-2 transition-colors text-left group">
-        <ChevronDown className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ${expanded ? '' : '-rotate-90'}`} />
-        <IntegrationIcon className={`w-4 h-4 flex-shrink-0 ${integrationColor[instanceType || ''] || ''}`} />
-        <div className="flex-1 min-w-0">
-          <h2 className="font-semibold truncate flex items-center gap-2">
-            {group.project.name}
-            {newItemsCount > 0 && (
-              <span className="text-xs px-1.5 py-0.5 bg-primary text-primary-foreground rounded-md animate-pulse">
-                new
-              </span>
-            )}
-          </h2>
-          <p className="text-xs text-muted-foreground">{group.instance.name}</p>
-        </div>
-        <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium">
-          {group.items.length}
-        </span>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <Separator className="my-6" />
-        <div className="p-4 space-y-2">
-          <InstanceProvider instance={group.instance}>
-            {group.items.map((item) => (
-              <InboxItemCard key={item.id} item={item} />
-            ))}
-          </InstanceProvider>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+    <Card className={hasNew ? "border-blue-500/90" : ""}>
+        <Collapsible open={expanded} onOpenChange={setExpanded}>
+          <div className="w-full px-4 flex items-center gap-2 transition-colors">
+            <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0 text-left">
+              {hasNew && <ItemStatusIndicator className="bg-blue-500" />}
+              <ChevronDown
+                className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ${
+                  expanded ? "" : "-rotate-90"
+                }`}
+              />
+              <IntegrationIcon
+                className={`w-4 h-4 flex-shrink-0 ${
+                  integrationColor[instanceType || ""] || ""
+                }`}
+              />
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold truncate flex items-center gap-2">
+                  {group.projectName}
+                </h2>
+
+                <p className="text-xs text-muted-foreground">
+                  {group.instanceName}
+                </p>
+              </div>
+            </CollapsibleTrigger>
+
+            <Badge className="font-semibold bg-blue-500/90 text-sidebar-accent-foreground">
+              {childCount}
+            </Badge>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <MoreVertical size="icon" className="rounded-full" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                { hasNew ? (
+                <DropdownMenuItem>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Mark All as Read
+                </DropdownMenuItem>
+                ) : (
+                <DropdownMenuItem>
+                  <MailOpen className="mr-2 h-4 w-4" />
+                  Mark All as Unread
+                </DropdownMenuItem>
+                )}
+
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <CollapsibleContent>
+            <Separator className="my-6" />
+            <div className="px-4 space-y-2">
+              {children}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+    </Card>
   );
 };
