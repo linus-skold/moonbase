@@ -32,7 +32,8 @@ export const InboxItemSchema = z.object({
     imageUrl: z.string().optional(),
   }).optional(),
   workItemKind: WorkItemKindSchema.optional(),
-  isNew: z.boolean().optional().default(false),
+  isNew: z.boolean().optional().default(false), // Unread status
+  isFreshlyFetched: z.boolean().optional().default(false), // Truly new item from latest fetch
 });
 export type InboxItem = z.infer<typeof InboxItemSchema>;
 
