@@ -52,6 +52,7 @@ export class AdoClient {
       visibility: (p.visibility === 0 ? "private" : "public") as
         | "private"
         | "public",
+      lastUpdateTime: p.lastUpdateTime?.toISOString(),
     }));
   }
 
@@ -95,7 +96,11 @@ export class AdoClient {
   }
 
   async getPullRequestsAssignedToMe(
-    projectId?: string
+    options?: { 
+      projectId?: string; 
+      projectIds?: string[];
+      onProgress?: (current: number, total: number, projectName: string) => void;
+    }
   ): Promise<AdoPullRequest[]> {
     const gitApi = await this.connection.getGitApi();
 
@@ -112,6 +117,10 @@ export class AdoClient {
     };
 
     let pullRequests: GitPullRequest[] = [];
+
+    // Support both single projectId and array of projectIds
+    const projectId = options?.projectId;
+    const projectIds = options?.projectIds;
 
     if (projectId) {
       const repos = await gitApi.getRepositories(projectId);
@@ -148,12 +157,22 @@ export class AdoClient {
 
       pullRequests = prBatches.flat();
     } else {
-      const projects = await this.getProjects();
+      // Use provided project IDs or fetch all projects
+      let projects: AdoProject[];
+      if (projectIds && projectIds.length > 0) {
+        const allProjects = await this.getProjects();
+        projects = allProjects.filter(p => projectIds.includes(p.id));
+      } else {
+        projects = await this.getProjects();
+      }
 
-      // Fetch PRs from all projects in parallel with concurrency control
+      // Fetch PRs from specified projects with progress tracking
+      let processedCount = 0;
       const prBatches = await this.processConcurrently(
         projects,
         async (project) => {
+          processedCount++;
+          options?.onProgress?.(processedCount, projects.length, project.name);
           try {
             const repos = await gitApi.getRepositories(project.id);
 
@@ -208,23 +227,24 @@ export class AdoClient {
       pullRequests = prBatches.flat();
     }
 
-    // Filter PRs: only include if I'm the creator OR if I'm a reviewer
-    pullRequests = pullRequests.filter((pr) => {
-      // Include if I created it
-      if (pr.createdBy?.id === this.userId) {
-        return true;
-      }
+    // Check if userId is configured
+    if (!this.userId) {
+      console.warn(`[ADO Client] Warning: userId is not configured for this instance. All PRs will be filtered out. Please set the userId field in your ADO instance configuration.`);
+      return [];
+    }
 
-      // Include if I'm a reviewer (regardless of whether I've voted yet)
-      const myReview = pr.reviewers?.find((r) => r.id === this.userId);
-      if (myReview) {
-        return true;
-      }
-
-      return false;
+    // Filter PRs: Keep only those where we're the creator OR a reviewer
+    const filteredPRs = pullRequests.filter((pr) => {
+      // Include if we created it
+      const isCreator = pr.createdBy?.id === this.userId;
+      
+      // Include if we're a reviewer (check the reviewers array)
+      const isReviewer = pr.reviewers?.some((r) => r.id === this.userId) ?? false;
+      
+      return isCreator || isReviewer;
     });
 
-    return pullRequests.map((pr) => {
+    return filteredPRs.map((pr) => {
       const prData = {
         codeReviewId: pr.codeReviewId!,
         pullRequestId: pr.pullRequestId!,
