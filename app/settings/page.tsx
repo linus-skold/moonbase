@@ -1,54 +1,39 @@
 "use client";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { VscGithub, VscAzureDevops } from "react-icons/vsc";
 import React from "react";
-import { useIntegrations } from "@/components/integration/IntegrationProvider";
-
-import { create } from "@/lib/storage";
-import { type AdoInstance, type AdoConfig, AdoConfigSchema } from "@/lib/exchanges/ado/schema/instance.schema";
-import { type GhInstance, type GhConfig, GhConfigSchema } from "@/lib/exchanges/gh/schema/instance.schema";
+import { integrationStorage } from "@/lib/utils/integration-storage";
 import { UserSettingsCard } from "@/components/settings/UserSettingsCard";
 import Link from "next/link";
+import { ConnectCard } from "@/components/integration/base/connect-card-base";
+import { ManageCard } from "@/components/integration/base/manage-card-base";
+import type { IntegrationInstance } from "@/lib/schema/config.schema";
+import { integrations } from "@/components/integration/registry";
 
 export default function SettingsPage() {
-
-  const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
-  const storageGh = create('gh-config', '1.0', GhConfigSchema);
-
-  // Map icon string to component
-  const iconMap: Record<string, React.ComponentType<any>> = {
-    VscAzureDevops,
-    VscGithub,
-  };
-
-  const integrations = useIntegrations();
-
-  // State for connected integration instances
-  const [adoInstances, setAdoInstances] = React.useState<any[]>([]);
-  const [ghInstances, setGhInstances] = React.useState<any[]>([]);
+  const [instances, setInstances] = React.useState<IntegrationInstance[]>([]);
   const [refreshKey, setRefreshKey] = React.useState(0);
 
   const loadInstances = React.useCallback(() => {
-    const adoConfig = storageAdo.load();
-    setAdoInstances(adoConfig?.instances || []);
-    
-    const ghConfig = storageGh.load();
-    setGhInstances(ghConfig?.instances || []);
+    const config = integrationStorage.loadAll();
+    const allInstances = config ? Object.values(config.instances) : [];
+    setInstances(allInstances);
   }, []);
 
   const handleDelete = React.useCallback(() => {
-    // Trigger refresh by updating the key
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  const handleInstanceAdded = React.useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
 
   React.useEffect(() => {
-    // Load instances from all integrations
     loadInstances();
   }, [loadInstances, refreshKey]);
 
   // Check for expiring PATs from all integrations
-  const allInstances = [...adoInstances, ...ghInstances];
+  const allInstances = instances;
   const expiringInstances = allInstances.filter((inst) => {
     if (!inst.expiresAt) return false;
     const expireDate = new Date(inst.expiresAt);
@@ -93,16 +78,19 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-2xl font-bold mb-4">Add Integrations</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {integrations.map((integration) => {
-              const CardComponent = integration.addIntegrationComponent;
-              return (
-                <CardComponent 
-                  key={integration.id} 
-                  integration={integration}
-                  onInstanceAdded={() => setRefreshKey(prev => prev + 1)}
-                />
-              );
-            })}
+            {integrations.map((integration) => (
+              <ConnectCard
+                key={integration.id}
+                icon={integration.icon}
+                title={integration.title}
+                description={integration.description}
+                dialogTitle={integration.dialogTitle}
+                dialogDescription={integration.dialogDescription}
+                oauthButtonText={integration.oauthButtonText}
+                setupPatComponent={integration.setupPatComponent}
+                onInstanceAdded={handleInstanceAdded}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -111,33 +99,13 @@ export default function SettingsPage() {
         <h2 className="text-2xl font-bold mb-4">Connected Integrations</h2>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {integrations.map((integration) => {
-            
-            const ManageCardComponent = integration.manageIntegrationComponent;
-            
-            if (integration.id === "ado") {
-              return adoInstances.map((inst, idx) => (
-                <ManageCardComponent
-                  key={inst.id || idx}
-                  integration={integration}
-                  instance={inst}
-                  onDelete={handleDelete}
-                />
-              ));
-            }
-            
-            if (integration.id === "github") {
-              return ghInstances.map((inst, idx) => (
-                <ManageCardComponent
-                  key={inst.id || idx}
-                  integration={integration}
-                  instance={inst}
-                  onDelete={handleDelete}
-                />
-              ));
-            }
-            return null;
-          })}
+          {instances.map((instance) => (
+            <ManageCard
+              key={instance.id}
+              instance={instance}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
       </div>
     </div>

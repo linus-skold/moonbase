@@ -6,8 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { type AdoInstance } from "@/lib/exchanges/ado/schema/instance.schema";
-import { type GhInstance } from "@/lib/exchanges/gh/schema/instance.schema";
+import { type AdoIntegrationInstance } from "@/lib/exchanges/ado/schema/config.schema";
+import { type GhIntegrationInstance } from "@/lib/exchanges/gh/schema/config.schema";
 import { VscAzureDevops } from "react-icons/vsc";
 import { CalendarIcon, Trash2, Power, PowerOff } from "lucide-react";
 import {
@@ -20,18 +20,15 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
-import { create } from "@/lib/storage";
-import { AdoConfigSchema } from "@/lib/exchanges/ado/schema/instance.schema";
-import { GhConfigSchema } from "@/lib/exchanges/gh/schema/instance.schema";
+import { integrationStorage } from "@/lib/utils/integration-storage";
+import { useRouter } from "next/navigation";
 
-type InstanceType = AdoInstance | GhInstance;
+type InstanceType = AdoIntegrationInstance | GhIntegrationInstance;
 
 interface ManageCardProps {
   children?: React.ReactNode;
-  onClick?: () => void;
   onDelete?: () => void;
   instance: InstanceType;
-  addText?: string;
 }
 
 function getDaysUntilExpiration(expiresAt: Date | number | undefined): number | null {
@@ -69,51 +66,27 @@ function formatExpirationText(expiresAt: Date | number | undefined, daysRemainin
 }
 
 
-export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCardProps) => {
-  const storageAdo = create('ado-config', '1.0', AdoConfigSchema);
-  const storageGh = create('gh-config', '1.0', GhConfigSchema);
-
-
+export const ManageCard = ({ instance, children, onDelete }: ManageCardProps) => {
+  const router = useRouter();
   const daysRemaining = getDaysUntilExpiration(instance.expiresAt);
   const expirationColor = getExpirationColor(daysRemaining);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  const handleManageClick = () => {
+    // Route based on instance type
+    const route = instance.instanceType === 'ado' ? '/manage/ado' : '/manage/gh';
+    router.push(`${route}?instanceId=${instance.id}`);
+  };
+
   const handleDelete = () => {
-    // Determine instance type by checking for properties
-    const isAdoInstance = 'organization' in instance || 'baseUrl' in instance;
+    const success = integrationStorage.removeInstance(instance.id);
     
-    if (isAdoInstance) {
-      const config = storageAdo.load();
-      if (!config) {
-        toast.error('Failed to load configuration');
-        return;
-      }
-      const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
-      const success = storageAdo.save({ ...config, instances: updatedInstances });
-      
-      if (success) {
-        toast.success('Instance deleted successfully');
-        setDeleteDialogOpen(false);
-        onDelete?.();
-      } else {
-        toast.error('Failed to delete instance');
-      }
+    if (success) {
+      toast.success('Instance deleted successfully');
+      setDeleteDialogOpen(false);
+      onDelete?.();
     } else {
-      const config = storageGh.load();
-      if (!config) {
-        toast.error('Failed to load configuration');
-        return;
-      }
-      const updatedInstances = config.instances.filter((inst) => inst.id !== instance.id);
-      const success = storageGh.save({ ...config, instances: updatedInstances });
-      
-      if (success) {
-        toast.success('Instance deleted successfully');
-        setDeleteDialogOpen(false);
-        onDelete?.();
-      } else {
-        toast.error('Failed to delete instance');
-      }
+      toast.error('Failed to delete instance');
     }
   };
 
@@ -172,7 +145,7 @@ export const ManageCard = ({ instance, children, onClick, onDelete }: ManageCard
               </span>
             </div>
           )}
-          <Button className="hover:cursor-pointer" variant="outline" onClick={onClick}>Manage</Button>
+          <Button className="hover:cursor-pointer" variant="outline" onClick={handleManageClick}>Manage</Button>
         </CardContent>
       </Card>
       {children}
