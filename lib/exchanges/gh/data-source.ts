@@ -1,5 +1,5 @@
 import { GhService } from './service';
-import type { InboxDataSource } from '@/components/inbox/InboxProvider';
+import type { InboxDataSource } from '@/lib/broker/types';
 import type { GroupedInboxItems } from '@/lib/schema/inbox.schema';
 
 import {create} from '@/lib/storage';
