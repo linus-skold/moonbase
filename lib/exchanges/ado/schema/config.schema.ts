@@ -1,12 +1,13 @@
-import { z } from 'zod';
+import { z } from "zod";
+import { IntegrationConfigSchema } from "@/lib/schema/config.schema";
 
-import { AdoInstanceSchema } from './instance.schema';
-import { AdoEnvironment } from './env.schema';
-
-export const AdoConfig = z.object({
-  instances: z.array(AdoInstanceSchema),
-  environments: z.array(AdoEnvironment),
-  pinnedProjects: z.array(z.string()).optional(),
-  userEmail: z.string().optional(),
+export const AdoIntegrationConfigSchema = IntegrationConfigSchema.extend({
+  instanceType: z.literal("ado").default("ado"),
+  baseUrl: z.url().optional(),
+  organization: z.string().optional(),
+  userId: z.string(),
+  ignoredWorkItemStates: z.array(z.string()).optional(),
+  customWorkItemQuery: z.string().optional(),
 });
-export type AdoConfig = z.infer<typeof AdoConfig>;
+
+export type AdoIntegrationInstance = z.infer<typeof AdoIntegrationConfigSchema>;

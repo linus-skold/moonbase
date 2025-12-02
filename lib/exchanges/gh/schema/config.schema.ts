@@ -1,10 +1,10 @@
-import { z } from 'zod';
-import { GhInstanceSchema } from './instance.schema';
+import { z } from "zod";
+import { IntegrationConfigSchema } from "@/lib/schema/config.schema";
 
-export const GhConfig = z.object({
-  instances: z.array(GhInstanceSchema),
-  environments: z.array(z.string()).optional(),
-  pinnedRepositories: z.array(z.string()).optional(), // Array of "owner/repo" strings
+
+export const GhIntegrationConfigSchema = IntegrationConfigSchema.extend({
+  instanceType: z.literal("gh").default("gh"),
+  username: z.string(),
 });
 
-export type GhConfig = z.infer<typeof GhConfig>;
+export type GhIntegrationInstance = z.infer<typeof GhIntegrationConfigSchema>;
