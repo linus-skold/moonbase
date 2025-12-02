@@ -33,6 +33,8 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import InboxCache from "@/lib/utils/inbox-cache";
 import { clearSeenItems } from "@/lib/utils/new-items-tracker";
+import { fetchAuthenticatedUserId } from "@/lib/exchanges/ado/api";
+import { RefreshCw } from "lucide-react";
 
 export default function Page() {
   const storage = create("ado-config", "1.0", AdoConfigSchema);
@@ -45,7 +47,8 @@ export default function Page() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [ ignoreStates, setIgnoreStates ] = useState<string>(''); 
+  const [ ignoreStates, setIgnoreStates ] = useState<string>('');
+  const [testConnectionLoading, setTestConnectionLoading] = useState(false); 
 
   // Helper to safely parse date
   const safeParseDate = (dateValue: any): Date => {
@@ -159,6 +162,30 @@ export default function Page() {
     }
   };
 
+  const handleTestConnection = async () => {
+    if (!instance) return;
+
+    setTestConnectionLoading(true);
+
+    try {
+      const baseUrl = instance.baseUrl || `https://dev.azure.com/${instance.organization}`;
+      const userId = await fetchAuthenticatedUserId(baseUrl, instance.personalAccessToken);
+
+      if (userId) {
+        // Update instance with the fetched userId
+        updateInstance({ userId });
+        toast.success(`Connection successful! User ID: ${userId}`);
+      } else {
+        toast.error("Connection failed: Unable to retrieve user ID");
+      }
+    } catch (error) {
+      console.error("Error testing connection:", error);
+      toast.error("Connection failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
+      setTestConnectionLoading(false);
+    }
+  };
+
   const handleDelete = () => {
     if (!instanceId) return;
 
@@ -228,6 +255,36 @@ export default function Page() {
         <p className="text-muted-foreground">
           Configure and manage {instance.name}
         </p>
+        <div className="mt-2 flex items-center gap-2">
+          {instance.userId ? (
+            <Label className="text-sm text-muted-foreground font-mono bg-muted px-2 py-1 rounded inline-block">
+              User ID: {instance.userId}
+            </Label>
+          ) : (
+            <Label className="text-sm text-yellow-500 font-mono bg-muted px-2 py-1 rounded inline-block">
+              Warning: No User ID found. Please check your Personal Access Token
+            </Label>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTestConnection}
+            disabled={testConnectionLoading}
+            className="cursor-pointer"
+          >
+            {testConnectionLoading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Testing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Test Connection
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <Card>

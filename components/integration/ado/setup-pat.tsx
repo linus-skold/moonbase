@@ -63,7 +63,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
     setInstance((prev) => ({ ...prev, ...updates }));
   };
 
-  const testConnection = async (): Promise<boolean> => {
+  const testConnection = async (): Promise<{ success: boolean; userId?: string }> => {
     setTestConnectionLoading(true);
     setConnectionSuccessful(null);
     
@@ -87,12 +87,12 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         setTestConnectionLoading(false);
         reset();
         
-        return true;
+        return { success: true, userId };
       } else {
         setConnectionSuccessful(false);
         setTestConnectionLoading(false);
         reset();
-        return false;
+        return { success: false };
       }
     } catch (error) {
       console.error("Error testing connection:", error);
@@ -104,7 +104,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         setConnectionSuccessful(null);
       }, 3000);
       
-      return false;
+      return { success: false };
     }
   };
 
@@ -124,10 +124,10 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   const handleConfirmAddInstance = async () => {
     try {
       // Test connection before saving
-      const connectionSuccess = await testConnection();
+      const connectionResult = await testConnection();
       
-      if (!connectionSuccess) {
-        console.error("Connection test failed. Instance not saved.");
+      if (!connectionResult.success || !connectionResult.userId) {
+        console.error("Connection test failed or userId not retrieved. Instance not saved.");
         if (onComplete) onComplete(false);
         return;
       }
@@ -135,23 +135,22 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       const config = storage.load();
       const instances = Array.isArray(config?.instances) ? config.instances : [];
 
-      const valid = AdoInstanceSchema.safeParse(instance);
-
-      if(!valid.success) {
-        if (onComplete) onComplete(false);
-        return;
-      }
-
-
+      // Create the new instance with the fetched userId
       const newInstance = { 
         ...instance,
+        userId: connectionResult.userId, // Use the userId from the connection test
         organization: instance.organization || undefined,
         baseUrl: instance.baseUrl || undefined,
       };
 
+      const valid = AdoInstanceSchema.safeParse(newInstance);
 
-      // Optionally, generate a unique id if needed
-      // newInstance.id = `instance-${Date.now()}`;
+      if(!valid.success) {
+        console.error("Instance validation failed:", valid.error);
+        if (onComplete) onComplete(false);
+        return;
+      }
+
       const updatedConfig = { 
         ...config, 
         instances: [...instances, newInstance],
@@ -164,6 +163,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       }
       onOpenChange(false);
     } catch (e) {
+      console.error("Error adding instance:", e);
       if (onComplete) onComplete(false);
     }
   };
