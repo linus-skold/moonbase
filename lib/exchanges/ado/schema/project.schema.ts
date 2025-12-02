@@ -7,6 +7,7 @@ export const AdoProjectSchema = z.object({
   url: z.string(),
   state: z.enum(['wellFormed', 'createPending', 'deleting', 'new', 'all']),
   visibility: z.enum(['private', 'public']),
+  lastUpdateTime: z.string().optional(),
 });
 export type AdoProject = z.infer<typeof AdoProjectSchema>;
 
