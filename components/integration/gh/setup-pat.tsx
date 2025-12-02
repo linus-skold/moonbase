@@ -14,11 +14,11 @@ import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
-import { create } from "@/lib/storage";
-import { type GhInstance, GhInstanceSchema, GhConfigSchema } from "@/lib/exchanges/gh/schema/instance.schema";
 import { fetchAuthenticatedUser } from "@/lib/exchanges/gh/api";
 import { WarningDialog } from "@/components/warning/WarningDialog";
 import { TrackEvent } from "@/lib/tracking/tracking";
+import { integrationStorage } from "@/lib/utils/integration-storage";
+import { GhIntegrationConfigSchema, type GhIntegrationInstance } from "@/lib/exchanges/gh/schema/config.schema";
 
 interface SetupPatProps {
   open: boolean;
@@ -27,7 +27,6 @@ interface SetupPatProps {
 }
 
 export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
-  const storage = create('gh-config', '1.0', GhConfigSchema);
   const [showTokens, setShowTokens] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -38,27 +37,19 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   >(null);
   const [showWarning, setShowWarning] = React.useState(false);
 
-  const [instance, setInstance] = React.useState<GhInstance>({
-    instanceType: 'gh' as const,
-    id: `gh-instance-${Date.now()}`,
-    name: "",
-    personalAccessToken: "",
-    enabled: false,
-    username: "",
-    statusMappings: [],
-    expiresAt: new Date(),
-  });
+  const [name, setName] = React.useState("");
+  const [personalAccessToken, setPersonalAccessToken] = React.useState("");
+  const [username, setUsername] = React.useState("");
+  const [expiresAt, setExpiresAt] = React.useState<Date | undefined>(undefined);
+  const [instanceId] = React.useState(() => crypto.randomUUID());
 
-  // Validation logic
-  const isNameValid = instance.name.trim().length > 0;
-  const isPatValid = instance.personalAccessToken.trim().length > 0;
+  const isNameValid = name.trim().length > 0;
+  const isPatValid = personalAccessToken.trim().length > 0;
   const isFormValid = isNameValid && isPatValid;
 
-  const updateInstance = (updates: Partial<typeof instance>) => {
-    setInstance((prev) => ({ ...prev, ...updates }));
-  };
-
   const testConnection = async (): Promise<boolean> => {
+    if(!personalAccessToken) return false;
+
     setTestConnectionLoading(true);
     setConnectionSuccessful(null);
     
@@ -70,11 +61,11 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
 
     try {
       // Fetch the authenticated user
-      const user = await fetchAuthenticatedUser(instance.personalAccessToken);
+      const user = await fetchAuthenticatedUser(personalAccessToken);
       
       if (user) {
-        // Update instance with the fetched username
-        updateInstance({ username: user.login });
+        // Update username with the fetched username
+        setUsername(user.login);
         setConnectionSuccessful(true);
         setTestConnectionLoading(false);
         reset();
@@ -103,10 +94,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
     }));
   };
 
-
-
-
-// Handler for Add Instance - shows warning first
+  // Handler for Add Instance - shows warning first
   const handleAddInstance = () => {
     setShowWarning(true);
   };
@@ -116,43 +104,44 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
     try {
       // Test connection before saving
       const connectionSuccess = await testConnection();
-      
       if (!connectionSuccess) {
         console.error("Connection test failed. Instance not saved.");
         if (onComplete) onComplete(false);
         return;
       }
-      
-      const config = storage.load();
-      const instances = Array.isArray(config?.instances) ? config.instances : [];
 
-      const valid = GhInstanceSchema.safeParse(instance);
+      const newInstance: GhIntegrationInstance = {
+        instanceType: "gh",
+        id: instanceId,
+        name,
+        enabled: true,
+        personalAccessToken,
+        username,
+        expiresAt,
+      };
 
-      if(!valid.success) {
+      const valid = GhIntegrationConfigSchema.safeParse(newInstance);
+
+      if (!valid.success) {
+        console.error("Validation failed:", valid.error);
         if (onComplete) onComplete(false);
         return;
       }
 
-      const newInstance = { 
-        ...instance,
-      };
-
-
-      const updatedConfig = { 
-        ...config, 
-        instances: [...instances, newInstance],
-        // environments and pinnedRepositories removed - not part of GhConfig schema
-      };
-      storage.save(updatedConfig);
+      integrationStorage.saveInstance(newInstance);
+      
       if (onComplete) {
         onComplete(true);
         TrackEvent("github_pat_instance_added", {});
-      } 
+      }
       onOpenChange(false);
     } catch (e) {
+      console.error("Error saving instance:", e);
       if (onComplete) onComplete(false);
     }
   };
+
+
 
   return (
     <>
@@ -183,8 +172,8 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             </label>
             <Input
               type="text"
-              value={instance.name}
-              onChange={(e) => updateInstance({ name: e.target.value })}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Display Name (e.g., My GitHub Account)"
               required
             />
@@ -199,21 +188,19 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             </label>
             <div className="relative">
               <Input
-                type={showTokens[instance.id] ? "text" : "password"}
-                value={instance.personalAccessToken}
-                onChange={(e) =>
-                  updateInstance({ personalAccessToken: e.target.value })
-                }
+                type={showTokens[instanceId] ? "text" : "password"}
+                value={personalAccessToken}
+                onChange={(e) => setPersonalAccessToken(e.target.value)}
                 placeholder="ghp_..."
                 className="pr-10"
                 required
               />
               <button
                 type="button"
-                onClick={() => toggleTokenVisibility(instance.id)}
+                onClick={() => toggleTokenVisibility(instanceId)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {showTokens[instance.id] ? (
+                {showTokens[instanceId] ? (
                   <EyeOff className="h-4 w-4" />
                 ) : (
                   <Eye className="h-4 w-4" />
@@ -234,9 +221,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             <DatePicker
               label="Expires"
               required
-              onChange={(date) =>
-                updateInstance({ expiresAt: date })
-              }
+              onChange={(date) => setExpiresAt(date)}
               description="Set the expiry date of your PAT for a reminder in the app"
             />
           </div>

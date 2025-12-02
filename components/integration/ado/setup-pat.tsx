@@ -14,10 +14,10 @@ import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/datepicker/DatePicker";
 
-import { type AdoInstance, type AdoConfig, AdoInstanceSchema, AdoConfigSchema } from "@/lib/exchanges/ado/schema/instance.schema";
+import { AdoIntegrationConfigSchema, type AdoIntegrationInstance } from "@/lib/exchanges/ado/schema/config.schema";
 import { fetchAuthenticatedUserId } from "@/lib/exchanges/ado/api";
 
-import { create } from "@/lib/storage";
+import { integrationStorage } from "@/lib/utils/integration-storage";
 import { WarningDialog } from "@/components/warning/WarningDialog";
 import { TrackEvent } from "@/lib/tracking/tracking";
 
@@ -29,7 +29,6 @@ interface SetupPatProps {
 }
 
 export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
-  const storage = create('ado-config', '1.0', AdoConfigSchema);
   const [showTokens, setShowTokens] = useState<Record<string, boolean>>(
     {}
   );
@@ -38,30 +37,21 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   const [connectionSuccessful, setConnectionSuccessful] = useState<boolean | null>(null);
   const [showWarning, setShowWarning] = useState(false);
 
-  const [instance, setInstance] = useState<AdoInstance>({
-    instanceType: 'ado' as const,
-    id: `ado-instance-${Date.now()}`,
-    name: "",
-    organization: undefined,
-    baseUrl: undefined,
-    personalAccessToken: "",
-    enabled: false,
-    userId: "",
-    statusMappings: [],
-    expiresAt: new Date(),
-  });
+  const [name, setName] = useState("");
+  const [organization, setOrganization] = useState<string | undefined>(undefined);
+  const [baseUrl, setBaseUrl] = useState<string | undefined>(undefined);
+  const [personalAccessToken, setPersonalAccessToken] = useState("");
+  const [userId, setUserId] = useState("");
+  const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined);
+  const [instanceId] = useState(() => crypto.randomUUID());
 
   // Validation logic
-  const isNameValid = instance.name.trim().length > 0;
+  const isNameValid = name.trim().length > 0;
   const isOrgOrBaseUrlValid =
-    (instance.organization ?? "").trim().length > 0 ||
-    (instance.baseUrl ?? "").trim().length > 0;
-  const isPatValid = instance.personalAccessToken.trim().length > 0;
+    (organization ?? "").trim().length > 0 ||
+    (baseUrl ?? "").trim().length > 0;
+  const isPatValid = personalAccessToken.trim().length > 0;
   const isFormValid = isNameValid && isOrgOrBaseUrlValid && isPatValid;
-
-  const updateInstance = (updates: Partial<typeof instance>) => {
-    setInstance((prev) => ({ ...prev, ...updates }));
-  };
 
   const testConnection = async (): Promise<{ success: boolean; userId?: string }> => {
     setTestConnectionLoading(true);
@@ -75,19 +65,19 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
 
     try {
       // Determine the base URL to use
-      const baseUrl = instance.baseUrl || `https://dev.azure.com/${instance.organization}`;
+      const url = baseUrl || `https://dev.azure.com/${organization}`;
       
       // Fetch the authenticated user ID
-      const userId = await fetchAuthenticatedUserId(baseUrl, instance.personalAccessToken);
+      const fetchedUserId = await fetchAuthenticatedUserId(url, personalAccessToken);
       
-      if (userId) {
-        // Update instance with the fetched userId
-        updateInstance({ userId });
+      if (fetchedUserId) {
+        // Update userId state with the fetched userId
+        setUserId(fetchedUserId);
         setConnectionSuccessful(true);
         setTestConnectionLoading(false);
         reset();
         
-        return { success: true, userId };
+        return { success: true, userId: fetchedUserId };
       } else {
         setConnectionSuccessful(false);
         setTestConnectionLoading(false);
@@ -131,35 +121,33 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
         if (onComplete) onComplete(false);
         return;
       }
-      
-      const config = storage.load();
-      const instances = Array.isArray(config?.instances) ? config.instances : [];
 
       // Create the new instance with the fetched userId
-      const newInstance = { 
-        ...instance,
-        userId: connectionResult.userId, // Use the userId from the connection test
-        organization: instance.organization || undefined,
-        baseUrl: instance.baseUrl || undefined,
+      const newInstance: AdoIntegrationInstance = {
+        instanceType: "ado",
+        id: instanceId,
+        name,
+        enabled: true,
+        personalAccessToken,
+        userId: connectionResult.userId,
+        organization,
+        baseUrl,
+        expiresAt,
       };
 
-      const valid = AdoInstanceSchema.safeParse(newInstance);
+      const valid = AdoIntegrationConfigSchema.safeParse(newInstance);
 
-      if(!valid.success) {
+      if (!valid.success) {
         console.error("Instance validation failed:", valid.error);
         if (onComplete) onComplete(false);
         return;
       }
 
-      const updatedConfig = { 
-        ...config, 
-        instances: [...instances, newInstance],
-        // environments removed - not part of AdoConfig schema
-      };
-      storage.save(updatedConfig);
+      integrationStorage.saveInstance(newInstance);
+      
       if (onComplete) {
         onComplete(true);
-        TrackEvent("ado_pat_instance_added", { defaultBaseUrl: instance.baseUrl?.match(/^https:\/\/dev.azure.com\//) });
+        TrackEvent("ado_pat_instance_added", { defaultBaseUrl: baseUrl?.match(/^https:\/\/dev.azure.com\//) });
       }
       onOpenChange(false);
     } catch (e) {
@@ -198,8 +186,8 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             </label>
             <Input
               type="text"
-              value={instance.name}
-              onChange={(e) => updateInstance({ name: e.target.value })}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Display Name"
               required
             />
@@ -214,8 +202,8 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             </label>
             <Input
               type="text"
-              value={instance.organization || ''}
-              onChange={(e) => updateInstance({ organization: e.target.value })}
+              value={organization || ''}
+              onChange={(e) => setOrganization(e.target.value)}
               placeholder="your-org"
             />
           </div>
@@ -229,8 +217,8 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             </p>
             <Input
               type="text"
-              value={instance.baseUrl || ''}
-              onChange={(e) => updateInstance({ baseUrl: e.target.value })}
+              value={baseUrl || ''}
+              onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://dev.azure.com/your-org"
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -249,21 +237,19 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             </label>
             <div className="relative">
               <Input
-                type={showTokens[instance.id] ? "text" : "password"}
-                value={instance.personalAccessToken}
-                onChange={(e) =>
-                  updateInstance({ personalAccessToken: e.target.value })
-                }
+                type={showTokens[instanceId] ? "text" : "password"}
+                value={personalAccessToken}
+                onChange={(e) => setPersonalAccessToken(e.target.value)}
                 placeholder="your-pat-token"
                 className="pr-10"
                 required
               />
               <button
                 type="button"
-                onClick={() => toggleTokenVisibility(instance.id)}
+                onClick={() => toggleTokenVisibility(instanceId)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {showTokens[instance.id] ? (
+                {showTokens[instanceId] ? (
                   <EyeOff className="h-4 w-4" />
                 ) : (
                   <Eye className="h-4 w-4" />
@@ -284,9 +270,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
             <DatePicker
               label="Expires"
               required
-              onChange={(date) =>
-                updateInstance({ expiresAt: date })
-              }
+              onChange={(date) => setExpiresAt(date)}
               description="Set the expiry date of your PAT for a reminder in the app"
             />
           </div>
