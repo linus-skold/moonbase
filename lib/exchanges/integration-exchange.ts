@@ -1,4 +1,4 @@
-import { PullRequest, WorkItem, Pipeline } from "../schema/item.schema";
+import { PullRequest, WorkItem, Pipeline, TypedItem } from "../schema/item.schema";
 
 export interface FetchItemsOptions {
   forceRefresh?: boolean;
@@ -16,6 +16,7 @@ export interface IntegrationExchange {
   id: string;
   name: string;
   getConfigStatus: () => { isConfigured: boolean; configUrl?: string };
+  getAllItems(): Promise<(TypedItem)[]>;
   getWorkItems(): WorkItem[];
   getPullRequests(): PullRequest[];
   getPipelines(): Pipeline[];
