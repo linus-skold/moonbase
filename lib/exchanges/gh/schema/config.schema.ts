@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IntegrationConfigSchema } from "@/lib/schema/config.schema";
+import { IntegrationConfigSchema } from "@/lib/schema/integration-base.schema";
 
 
 export const GhIntegrationConfigSchema = IntegrationConfigSchema.extend({

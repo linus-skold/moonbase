@@ -5,7 +5,7 @@ export const ProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
-  url: z.string().url(),
+  url: z.url(),
   createdDate: z.string().optional(),
 });
 
