@@ -8,11 +8,8 @@ import { VersionBanner } from "@/components/VersionBanner";
 import SystemNotificationBanner from "@/components/banner/banner";
 import { BannerContainer } from "@/components/banner/BannerContainer";
 import { BannerTitle } from "@/components/ui/shadcn-io/banner";
-import { IntegrationProvider } from "@/components/integration/IntegrationProvider";
-import { integrations } from "@/components/integration/integrations";
 import { CustomToaster } from "@/components/ui/custom-toaster";
-import { NewItemsProvider } from "@/components/inbox/NewItemsContext";
-import { GlobalInboxProvider } from "@/components/inbox/GlobalInboxProvider";
+import { BrokerProvider } from "@/lib/broker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,11 +42,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <IntegrationProvider initialIntegrations={integrations}>
-            <NewItemsProvider>
-              <GlobalInboxProvider>
-                <div className="flex flex-col h-screen overflow-hidden">
-                  <BannerContainer>
+          <BrokerProvider>
+            <div className="flex flex-col h-screen overflow-hidden">
+              <BannerContainer>
                     <SystemNotificationBanner variant="github" canClose={false}>
                       <BannerTitle className="text-center">
                         <span className="font-bold">Moonbase </span> is
@@ -75,15 +70,13 @@ export default function RootLayout({
                       <AppSidebar />
                       <SidebarTrigger />
 
-                      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+                      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-12">
                         {children}
                       </main>
                     </SidebarProvider>
                   </div>
                 </div>
-              </GlobalInboxProvider>
-            </NewItemsProvider>
-          </IntegrationProvider>
+          </BrokerProvider>
         </ThemeProvider>
         <CustomToaster position="top-center" />
       </body>

@@ -2,11 +2,8 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { create } from "@/lib/storage";
-import {
-  type AdoInstance,
-  AdoConfigSchema,
-} from "@/lib/exchanges/ado/schema/instance.schema";
+import { integrationStorage } from "@/lib/utils/integration-storage";
+import type { AdoIntegrationInstance } from "@/lib/exchanges/ado/schema/config.schema";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Trash2, Eye, EyeOff } from "lucide-react";
 import {
@@ -27,22 +24,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/datepicker/DatePicker";
-import StatusMapper from "@/components/status-mapper/StatusMapper";
-import { StatusMapperContent } from "@/components/status-mapper/StatusMapperContent";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import InboxCache from "@/lib/utils/inbox-cache";
-import { clearSeenItems } from "@/lib/utils/new-items-tracker";
 import { fetchAuthenticatedUserId } from "@/lib/exchanges/ado/api";
 import { RefreshCw } from "lucide-react";
 
 export default function Page() {
-  const storage = create("ado-config", "1.0", AdoConfigSchema);
   const searchParams = useSearchParams();
   const router = useRouter();
   const instanceId = searchParams.get("instanceId");
 
-  const [instance, setInstance] = useState<AdoInstance | null>(null);
+  const [instance, setInstance] = useState<AdoIntegrationInstance | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showToken, setShowToken] = useState(false);
@@ -72,12 +65,9 @@ export default function Page() {
       return;
     }
 
-    const config = storage.load();
-    const foundInstance = config?.instances?.find(
-      (inst) => inst.id === instanceId
-    );
+    const foundInstance = integrationStorage.loadInstance(instanceId);
 
-    if (foundInstance) {
+    if (foundInstance && foundInstance.instanceType === 'ado') {
       // Ensure expiresAt is a valid Date object when loading from storage
       setInstance({
         ...foundInstance,
@@ -95,7 +85,7 @@ export default function Page() {
     setIgnoreStates(instance.ignoredWorkItemStates ? instance.ignoredWorkItemStates.join(', ') : '');
   }, [instance]);
 
-  const updateInstance = (updates: Partial<AdoInstance>) => {
+  const updateInstance = (updates: Partial<AdoIntegrationInstance>) => {
     setInstance((prev) => (prev ? { ...prev, ...updates } : null));
     setHasChanges(true);
   };
@@ -103,32 +93,21 @@ export default function Page() {
   const handleSave = () => {
     if (!instance || !instanceId) return;
 
-    const config = storage.load();
-    if (!config) return;
-
     // Process ignoreStates string into array before saving
-    const processedInstance = {
+    const processedInstance: AdoIntegrationInstance = {
       ...instance,
       ignoredWorkItemStates: ignoreStates.trim() 
         ? ignoreStates.split(',').map(s => s.trim()).filter(s => s.length > 0)
         : undefined
     };
 
-    // Instance is already in correct format with proper types
-    const updatedInstances = config.instances.map((inst) =>
-      inst.id === instanceId ? processedInstance : inst
-    );
-
-    const success = storage.save({ ...config, instances: updatedInstances });
-    if (success) {
+    try {
+      integrationStorage.saveInstance(processedInstance);
       setHasChanges(false);
       
       // Clear the cache for this instance to force a fresh fetch with new settings
       InboxCache.clearCachedItems('ado', instanceId);
-      
-      // Clear the seen items tracker to reset badge counts
-      clearSeenItems('ado', instanceId);
-      
+            
       // Trigger a refresh event so the inbox will reload with new filters
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('inbox-config-updated', {
@@ -137,7 +116,8 @@ export default function Page() {
       }
       
       toast.success("Instance saved successfully. Cache and read status cleared - refresh your inbox to apply changes.");
-    } else {
+    } catch (error) {
+      console.error('Failed to save instance:', error);
       toast.error("Failed to save instance");
     }
   };
@@ -145,19 +125,14 @@ export default function Page() {
   const handleStatusMappingsSave = (mappings: any[]) => {
     if (!instance || !instanceId) return;
 
-    const config = storage.load();
-    if (!config) return;
+    const updatedInstance: AdoIntegrationInstance = { ...instance, statusMappings: mappings };
 
-    const updatedInstance = { ...instance, statusMappings: mappings };
-    const updatedInstances = config.instances.map((inst) =>
-      inst.id === instanceId ? updatedInstance : inst
-    );
-
-    const success = storage.save({ ...config, instances: updatedInstances });
-    if (success) {
+    try {
+      integrationStorage.saveInstance(updatedInstance);
       setInstance(updatedInstance);
       toast.success("Status mappings updated successfully");
-    } else {
+    } catch (error) {
+      console.error('Failed to save status mappings:', error);
       toast.error("Failed to update status mappings");
     }
   };
@@ -169,6 +144,13 @@ export default function Page() {
 
     try {
       const baseUrl = instance.baseUrl || `https://dev.azure.com/${instance.organization}`;
+      
+      if (!instance.personalAccessToken) {
+        toast.error("Personal Access Token is required");
+        setTestConnectionLoading(false);
+        return;
+      }
+      
       const userId = await fetchAuthenticatedUserId(baseUrl, instance.personalAccessToken);
 
       if (userId) {
@@ -189,18 +171,12 @@ export default function Page() {
   const handleDelete = () => {
     if (!instanceId) return;
 
-    const config = storage.load();
-    if (!config) return;
-
-    const updatedInstances = config.instances.filter(
-      (inst) => inst.id !== instanceId
-    );
-    const success = storage.save({ ...config, instances: updatedInstances });
-
-    if (success) {
+    try {
+      integrationStorage.removeInstance(instanceId);
       toast.success("Instance deleted successfully");
       router.push("/settings");
-    } else {
+    } catch (error) {
+      console.error('Failed to delete instance:', error);
       toast.error("Failed to delete instance");
     }
   };
@@ -416,8 +392,9 @@ export default function Page() {
             Custom queries will override this setting.
           </CardDescription>
 
-          <Separator className="my-6" />
+          {/* <Separator className="my-6" />
 
+        
           <Label className="text-lg font-semibold mb-2">Status Mappings</Label>
           <CardDescription className="mt-1 mb-2">
             Configure how Azure DevOps work item states map to your workflow
@@ -429,7 +406,7 @@ export default function Page() {
               initialMappings={instance.statusMappings || []}
               onSave={handleStatusMappingsSave}
             />
-          </StatusMapper>
+          </StatusMapper> */}
         </CardContent>
       </Card>
 

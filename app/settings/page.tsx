@@ -5,8 +5,8 @@ import React from "react";
 import { integrationStorage } from "@/lib/utils/integration-storage";
 import { UserSettingsCard } from "@/components/settings/UserSettingsCard";
 import Link from "next/link";
-import { ConnectCard } from "@/components/integration/base/connect-card-base";
-import { ManageCard } from "@/components/integration/base/manage-card-base";
+import { ConnectCard } from "@/components/integration/connect-card";
+import { ManageCard } from "@/components/integration/manage-card";
 import type { IntegrationInstance } from "@/lib/schema/config.schema";
 import { integrations } from "@/components/integration/registry";
 

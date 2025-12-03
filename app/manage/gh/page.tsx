@@ -2,8 +2,8 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import React from 'react';
-import { type GhInstance, type GhConfig, GhInstanceSchema, GhConfigSchema } from '@/lib/exchanges/gh/schema/instance.schema';
-import { create } from '@/lib/storage'
+import { integrationStorage } from '@/lib/utils/integration-storage';
+import type { GhIntegrationInstance } from '@/lib/exchanges/gh/schema/config.schema';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,17 +19,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/datepicker/DatePicker';
 import { toast } from 'sonner';
-import { Separator } from '@/components/ui/separator';
 import InboxCache from '@/lib/utils/inbox-cache';
-import { clearSeenItems } from '@/lib/utils/new-items-tracker';
 
 export default function Page() {
-  const storage = create('gh-config', '1.0', GhConfigSchema);
   const searchParams = useSearchParams();
   const router = useRouter();
   const instanceId = searchParams.get('instanceId');
   
-  const [instance, setInstance] = React.useState<GhInstance | null>(null);
+  const [instance, setInstance] = React.useState<GhIntegrationInstance | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [showToken, setShowToken] = React.useState(false);
@@ -57,10 +54,9 @@ export default function Page() {
       return;
     }
 
-    const config = storage.load();
-    const foundInstance = config?.instances?.find((inst) => inst.id === instanceId);
+    const foundInstance = integrationStorage.loadInstance(instanceId);
     
-    if (foundInstance) {
+    if (foundInstance && foundInstance.instanceType === 'gh') {
       // Ensure expiresAt is a valid Date object when loading from storage
       setInstance({
         ...foundInstance,
@@ -72,7 +68,7 @@ export default function Page() {
     setLoading(false);
   }, [instanceId, router]);
 
-  const updateInstance = (updates: Partial<GhInstance>) => {
+  const updateInstance = (updates: Partial<GhIntegrationInstance>) => {
     setInstance((prev) => prev ? { ...prev, ...updates } : null);
     setHasChanges(true);
   };
@@ -80,23 +76,13 @@ export default function Page() {
   const handleSave = () => {
     if (!instance || !instanceId) return;
 
-    const config = storage.load();
-    if (!config) return;
-
-    // Instance is already in correct format with proper types
-    const updatedInstances = config.instances.map((inst) =>
-      inst.id === instanceId ? instance : inst
-    );
-
-    const success = storage.save({ ...config, instances: updatedInstances });
-    if (success) {
+    try {
+      integrationStorage.saveInstance(instance);
       setHasChanges(false);
       
       // Clear the cache for this instance to force a fresh fetch with new settings
       InboxCache.clearCachedItems('github', instanceId);
       
-      // Clear the seen items tracker to reset badge counts
-      clearSeenItems('github', instanceId);
       
       // Trigger a refresh event so the inbox will reload with new filters
       if (typeof window !== 'undefined') {
@@ -106,7 +92,8 @@ export default function Page() {
       }
       
       toast.success('Instance saved successfully. Cache and read status cleared - refresh your inbox to apply changes.');
-    } else {
+    } catch (error) {
+      console.error('Failed to save instance:', error);
       toast.error('Failed to save instance');
     }
   };
@@ -114,16 +101,12 @@ export default function Page() {
   const handleDelete = () => {
     if (!instanceId) return;
 
-    const config = storage.load();
-    if (!config) return;
-
-    const updatedInstances = config.instances.filter((inst) => inst.id !== instanceId);
-    const success = storage.save({ ...config, instances: updatedInstances });
-    
-    if (success) {
+    try {
+      integrationStorage.removeInstance(instanceId);
       toast.success('Instance deleted successfully');
       router.push('/settings');
-    } else {
+    } catch (error) {
+      console.error('Failed to delete instance:', error);
       toast.error('Failed to delete instance');
     }
   };
@@ -245,7 +228,7 @@ export default function Page() {
               />
             </div>
           </div>
-
+{/* 
           <Separator className="my-6" />
 
           <div>
@@ -253,8 +236,7 @@ export default function Page() {
             <p className="text-sm text-muted-foreground mb-4">
               Configure how GitHub issue and PR states map to your workflow (Coming soon)
             </p>
-            {/* TODO: Implement StatusMapper properly */}
-          </div>
+          </div> */}
         </CardContent>
       </Card>
 
