@@ -44,25 +44,34 @@ type ProjectCardComponentProps = {
   instanceType?: string;
   children?: React.ReactNode;
   className?: string;
+  onMarkAllAsRead?: () => void;
+  onMarkAllAsUnread?: () => void;
 };
 
 export const ProjectCardComponent = ({
   group,
   instanceType,
   children,
+  onMarkAllAsRead,
+  onMarkAllAsUnread,
 }: ProjectCardComponentProps) => {
   const [expanded, setExpanded] = React.useState(false);
 
   const IntegrationIcon = getInstanceIcon(instanceType || "");
 
   const childCount = React.Children.count(children);
-  const hasNew = React.Children.toArray(children).some((child) => {
+  const childItems: InboxItem[] = [];
+  
+  React.Children.forEach(children, (child) => {
     if (React.isValidElement(child)) {
       const item = (child?.props as any)?.item as InboxItem | undefined;
-      return item?.isNew;
+      if (item) {
+        childItems.push(item);
+      }
     }
-    return false;
   });
+  
+  const hasNew = childItems.some(item => item.unread);
 
   return (
     <Card className={hasNew ? "border-blue-500/90" : ""}>
@@ -109,12 +118,26 @@ export const ProjectCardComponent = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 { hasNew ? (
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onMarkAllAsRead) {
+                      onMarkAllAsRead();
+                    }
+                  }}
+                >
                   <Mail className="mr-2 h-4 w-4" />
                   Mark All as Read
                 </DropdownMenuItem>
                 ) : (
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onMarkAllAsUnread) {
+                      onMarkAllAsUnread();
+                    }
+                  }}
+                >
                   <MailOpen className="mr-2 h-4 w-4" />
                   Mark All as Unread
                 </DropdownMenuItem>

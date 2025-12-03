@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import type { InboxItem } from "@/lib/schema/inbox.schema";
+import { TypedItem } from "@/lib/schema/item.schema";
 import { ExternalLink, MailOpen, Mail } from "lucide-react";
 import { ItemAssignment } from "./inbox-card/ItemAssignment";
 import { ItemIcon } from "./inbox-card/ItemIcon";
@@ -16,49 +16,82 @@ import {
 import { MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+// Extended type for items with additional fields from the exchanges
+type InboxItemWithExtras = TypedItem & {
+  priority?: string;
+  workItemKind?: string;
+  assignedTo?: {
+    displayName: string;
+    uniqueName?: string;
+    imageUrl?: string;
+  };
+  project?: {
+    name: string;
+  };
+  repository?: {
+    name: string;
+  };
+  instance?: {
+    name: string;
+    instanceType: string;
+  };
+};
+
 interface InboxItemCardProps {
-  item: InboxItem;
+  item: InboxItemWithExtras;
+  onMarkAsRead?: (itemId: string) => void;
+  onMarkAsUnread?: (itemId: string) => void;
 }
 
-export function InboxItemCard({ item }: InboxItemCardProps) {
+export function InboxItemCard({ item, onMarkAsRead, onMarkAsUnread }: InboxItemCardProps) {
   const broker = useBroker();
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Mark as read immediately when clicked
-    if (item.isNew) {
-      broker.markAsRead(item.id);
+    if (item.unread) {
+      if (onMarkAsRead) {
+        onMarkAsRead(item.id);
+      } else {
+        broker.markAsRead(item.id);
+      }
     }
     // The link will open in a new tab, so we don't need to prevent default
   };
 
-  const handleMarkAsRead = (e: React.MouseEvent) => {
+  const handleMarkAsReadClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("Mark as Read clicked");
-    broker.markAsRead(item.id);
+    if (onMarkAsRead) {
+      onMarkAsRead(item.id);
+    } else {
+      broker.markAsRead(item.id);
+    }
   };
 
-  const handleMarkAsUnread = (e: React.MouseEvent) => {
+  const handleMarkAsUnreadClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("Mark as Unread clicked");
-    broker.markAsUnread(item.id);
+    if (onMarkAsUnread) {
+      onMarkAsUnread(item.id);
+    } else {
+      broker.markAsUnread(item.id);
+    }
   };
 
   return (
     <Card className="p-0 border-0">
       <div
         className={`flex gap-3 border rounded-lg hover:bg-accent/50 transition-colors hover:border-muted-blue-border ${
-          item.isNew ? "bg-accent/70 border-muted-blue-border" : "bg-card"
+          item.unread ? "bg-accent/70 border-muted-blue-border" : "bg-card"
         }`}
       >
-        {item.isNew && (
+        {item.unread && (
           <div className="flex-shrink-0 w-1 bg-blue-500 rounded-l" />
         )}
 
         <div
           className={`flex gap-3 flex-1 min-w-0 py-3 pr-3 ${
-            item.isNew ? "" : "pl-4"
+            item.unread ? "" : "pl-4"
           }`}
         >
           <ItemIcon
@@ -92,18 +125,18 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
                       e.preventDefault();
                       e.stopPropagation();
                     }}
-                  >
+                  >Millis(item.updateTimestamp
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {item.isNew ? (
-                    <DropdownMenuItem onClick={handleMarkAsRead}>
+                  {item.unread ? (
+                    <DropdownMenuItem onClick={handleMarkAsReadClick}>
                       <Mail className="mr-2 h-4 w-4" />
                       Mark as Read
                     </DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem onClick={handleMarkAsUnread}>
+                    <DropdownMenuItem onClick={handleMarkAsUnreadClick}>
                       <MailOpen className="mr-2 h-4 w-4" />
                       Mark as Unread
                     </DropdownMenuItem>
@@ -113,7 +146,7 @@ export function InboxItemCard({ item }: InboxItemCardProps) {
             </div>
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>{DateTime.fromISO(item.updatedDate).toRelative()}</span>
+              <span>{DateTime.fromMillis(item.updateTimestamp??0).toRelative()}</span>
               {item.assignedTo && (<ItemAssignment assignedTo={item.assignedTo} />)}
             </div>
 
