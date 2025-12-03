@@ -125,7 +125,7 @@ export function InboxItemCard({ item, onMarkAsRead, onMarkAsUnread }: InboxItemC
                       e.preventDefault();
                       e.stopPropagation();
                     }}
-                  >Millis(item.updateTimestamp
+                  >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>

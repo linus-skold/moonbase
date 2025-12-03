@@ -1,8 +1,8 @@
 import { IntegrationExchange } from "@/lib/exchanges/integration-exchange";
 import { integrationStorage } from "@/lib/utils/integration-storage";
 import { loadUnreadState, saveUnreadState } from "@/lib/utils/unread-storage";
-import { GhService } from "./service";
 import type { WorkItem, PullRequest, Pipeline } from "@/lib/schema/item.schema";
+import { fetchInboxItems } from "./service";
 
 export const createExchange = (instanceId: string): IntegrationExchange => {
   const instanceConfig = integrationStorage.loadInstance(instanceId);
@@ -10,12 +10,6 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
   if (!instanceConfig || instanceConfig.instanceType !== 'gh') {
     throw new Error(`GitHub instance ${instanceId} not found`);
   }
-
-  // Create service with single instance config
-  const service = new GhService({ 
-    instances: [instanceConfig as any],
-    pinnedRepositories: []
-  });
 
   // Local cache
   let cachedWorkItems: WorkItem[] = [];
@@ -75,8 +69,9 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
     // Async fetcher - updates cache and returns fresh data
     fetchItems: async (options) => {
       try {
+        // should probably check the cache first ? 
         // Fetch fresh data from service
-        const items = await service.fetchAllInboxItems();
+        const items = await fetchInboxItems();
         
         // Separate by type
         const newWorkItems = items.filter((item): item is WorkItem => item.type === 'workItem');
