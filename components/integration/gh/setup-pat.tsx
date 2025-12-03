@@ -18,11 +18,14 @@ import { fetchAuthenticatedUser } from "@/lib/exchanges/gh/api";
 import { WarningDialog } from "@/components/warning/WarningDialog";
 import { TrackEvent } from "@/lib/tracking/tracking";
 import { integrationStorage } from "@/lib/utils/integration-storage";
-import { GhIntegrationConfigSchema, type GhIntegrationInstance } from "@/lib/exchanges/gh/schema/config.schema";
+import {
+  GhIntegrationConfigSchema,
+  type GhIntegrationInstance,
+} from "@/lib/exchanges/gh/schema/config.schema";
 
 interface SetupPatProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;  
+  onOpenChange: (open: boolean) => void;
   onComplete?: (success: boolean) => void;
 }
 
@@ -48,11 +51,11 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
   const isFormValid = isNameValid && isPatValid;
 
   const testConnection = async (): Promise<boolean> => {
-    if(!personalAccessToken) return false;
+    if (!personalAccessToken) return false;
 
     setTestConnectionLoading(true);
     setConnectionSuccessful(null);
-    
+
     const reset = () => {
       setTimeout(() => {
         setConnectionSuccessful(null);
@@ -62,14 +65,14 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
     try {
       // Fetch the authenticated user
       const user = await fetchAuthenticatedUser(personalAccessToken);
-      
+
       if (user) {
         // Update username with the fetched username
         setUsername(user.login);
         setConnectionSuccessful(true);
         setTestConnectionLoading(false);
         reset();
-        
+
         return true;
       } else {
         setConnectionSuccessful(false);
@@ -82,7 +85,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       setConnectionSuccessful(false);
       setTestConnectionLoading(false);
       reset();
-      
+
       return false;
     }
   };
@@ -129,7 +132,7 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
       }
 
       integrationStorage.saveInstance(newInstance);
-      
+
       if (onComplete) {
         onComplete(true);
         TrackEvent("github_pat_instance_added", {});
@@ -141,8 +144,6 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
     }
   };
 
-
-
   return (
     <>
       <WarningDialog
@@ -152,119 +153,121 @@ export const SetupPat = ({ open, onOpenChange, onComplete }: SetupPatProps) => {
           handleConfirmAddInstance();
         }}
       >
-        Your Personal Access Token will be stored locally in your browser. 
-        Please ensure you trust this device and understand the security implications.
+        Your Personal Access Token will be stored locally in your browser.
+        Please ensure you trust this device and understand the security
+        implications.
       </WarningDialog>
 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add GitHub PAT Instance</DialogTitle>
-          <DialogDescription>
-            Enter your Personal Access Token to connect with GitHub
-          </DialogDescription>
-        </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Add GitHub PAT Instance</DialogTitle>
+            <DialogDescription>
+              Enter your Personal Access Token to connect with GitHub
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Name <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Display Name (e.g., My GitHub Account)"
-              required
-            />
-            {!isNameValid && (
-              <p className="text-xs text-red-500 mt-1">Name is required.</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Personal Access Token <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
+          <div className="grid gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Name <span className="text-red-500">*</span>
+              </label>
               <Input
-                type={showTokens[instanceId] ? "text" : "password"}
-                value={personalAccessToken}
-                onChange={(e) => setPersonalAccessToken(e.target.value)}
-                placeholder="ghp_..."
-                className="pr-10"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Display Name (e.g., My GitHub Account)"
                 required
               />
-              <button
-                type="button"
-                onClick={() => toggleTokenVisibility(instanceId)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showTokens[instanceId] ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
+              {!isNameValid && (
+                <p className="text-xs text-red-500 mt-1">Name is required.</p>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Requires <code>repo</code> scope for private repositories and PRs
-            </p>
-            {!isPatValid && (
-              <p className="text-xs text-red-500 mt-1">
-                Personal Access Token is required.
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Personal Access Token <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  type={showTokens[instanceId] ? "text" : "password"}
+                  value={personalAccessToken}
+                  onChange={(e) => setPersonalAccessToken(e.target.value)}
+                  placeholder="ghp_..."
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleTokenVisibility(instanceId)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showTokens[instanceId] ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Requires <code>repo</code> scope for private repositories and
+                PRs
               </p>
-            )}
+              {!isPatValid && (
+                <p className="text-xs text-red-500 mt-1">
+                  Personal Access Token is required.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <DatePicker
+                label="Expires"
+                required
+                onChange={(date) => setExpiresAt(date)}
+                description="Set the expiry date of your PAT for a reminder in the app"
+              />
+            </div>
           </div>
 
-          <div>
-            <DatePicker
-              label="Expires"
-              required
-              onChange={(date) => setExpiresAt(date)}
-              description="Set the expiry date of your PAT for a reminder in the app"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-2 grid-cols-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start hover:cursor-pointer"
-            onClick={testConnection}
-            disabled={testConnectionLoading}
-          >
-            {testConnectionLoading && <Spinner className="mr-2 h-5 w-5" />}
-            {!testConnectionLoading && <RefreshCw className="mr-2 h-5 w-5" />}
-            <span
-              className={`transition-colors duration-300 ${
-                connectionSuccessful === true
-                  ? "text-green-500"
-                  : connectionSuccessful === false
-                  ? "text-red-500"
-                  : "text-foreground"
-              }`}
+          <div className="mt-4 grid gap-2 grid-cols-2">
+            <Button
+              variant="outline"
+              className="w-full justify-start hover:cursor-pointer"
+              onClick={testConnection}
+              disabled={testConnectionLoading}
             >
-              {connectionSuccessful === true
-                ? "Connection Successful"
-                : connectionSuccessful === false
-                ? "Connection Failed"
-                : "Test Connection"}
-            </span>
-          </Button>
+              {testConnectionLoading && <Spinner className="mr-2 h-5 w-5" />}
+              {!testConnectionLoading && <RefreshCw className="mr-2 h-5 w-5" />}
+              <span
+                className={`transition-colors duration-300 ${
+                  connectionSuccessful === true
+                    ? "text-green-500"
+                    : connectionSuccessful === false
+                    ? "text-red-500"
+                    : "text-foreground"
+                }`}
+              >
+                {connectionSuccessful === true
+                  ? "Connection Successful"
+                  : connectionSuccessful === false
+                  ? "Connection Failed"
+                  : "Test Connection"}
+              </span>
+            </Button>
 
-          <Button
-            variant="default"
-            className="w-full justify-start hover:cursor-pointer"
-            disabled={!isFormValid}
-            onClick={handleAddInstance}
-          >
-            <Save className="mr-2 h-5 w-5" />
-            Add Instance
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <Button
+              variant="default"
+              className="w-full justify-start hover:cursor-pointer"
+              disabled={!isFormValid}
+              onClick={handleAddInstance}
+            >
+              <Save className="mr-2 h-5 w-5" />
+              Add Instance
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
