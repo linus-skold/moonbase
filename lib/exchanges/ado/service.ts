@@ -183,7 +183,10 @@ export class AdoService {
   // Async generator for progressive item fetching
   async *fetchInboxItemsProgressive(): AsyncGenerator<{ items: InboxItem[], progress: { current: number, total: number, stage: string } }> {
     const instances = this.getEnabledInstances();
-    const totalStages = instances.length * 3; // PRs, Work Items, Pinned Projects per instance
+    const pinnedProjectsCount = this.config.pinnedProjects?.length || 0;
+    const totalStages = instances.reduce((sum, instance) => {
+      return sum + 2 + pinnedProjectsCount; // PRs + Work Items + (1 per pinned project)
+    }, 0);
     let currentStage = 0;
 
     for (const instance of instances) {
@@ -191,12 +194,18 @@ export class AdoService {
         const client = new AdoClient(instance);
         
         // Fetch projects first (needed for other queries)
-        const projects = await client.getProjects();
+        const projectsStart = Date.now();
+        const allProjects = await client.getProjects();
+        console.log(`[ADO] Fetched ${allProjects.length} projects from ${instance.name} in ${Date.now() - projectsStart}ms`);
 
         // Stage 1: Fetch PRs assigned to me
         currentStage++;
         try {
+          const prFetchStart = Date.now();
           const prs = await client.getPullRequestsAssignedToMe();
+          const prFetchTime = Date.now() - prFetchStart;
+          console.log(`[ADO] Fetched ${prs.length} PRs from ${instance.name} in ${prFetchTime}ms`);
+          
           const prItems = prs.map((pr) => this.convertPullRequestToInboxItem(pr, instance));
           yield {
             items: prItems,
@@ -213,16 +222,24 @@ export class AdoService {
         // Stage 2: Fetch work items assigned to me
         currentStage++;
         try {
+          const fetchStart = Date.now();
           const workItems = await client.getWorkItemsAssignedToMe(undefined);
+          const fetchTime = Date.now() - fetchStart;
+          console.log(`[ADO] Fetched ${workItems.length} work items from ${instance.name} in ${fetchTime}ms`);
+          
+          const processStart = Date.now();
           const wiItems: InboxItem[] = [];
           for (const wi of workItems) {
-            const project = projects.find((p) => 
+            const project = allProjects.find((p) => 
               wi.fields['System.AreaPath']?.startsWith(p.name)
             );
             if (project) {
               wiItems.push(this.convertWorkItemToInboxItem(wi, instance, project.name));
             }
           }
+          const processTime = Date.now() - processStart;
+          console.log(`[ADO] Processed ${wiItems.length} work items from ${instance.name} in ${processTime}ms`);
+          
           yield {
             items: wiItems,
             progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Work Items` }
@@ -235,66 +252,75 @@ export class AdoService {
           };
         }
 
-        // Stage 3: Fetch pipeline runs and tasks for pinned projects
-        currentStage++;
-        try {
-          const pinnedProjects = this.config.pinnedProjects || [];
-          const pinnedItems: InboxItem[] = [];
-          
-          // Process pinned projects in parallel
-          await Promise.allSettled(
-            pinnedProjects.map(async (projectId) => {
-              const project = projects.find((p) => p.id === projectId);
-              if (!project) return;
+        // Stage 3+: Fetch pipeline runs and tasks for each pinned project individually
+        const pinnedProjects = this.config.pinnedProjects || [];
+        
+        for (const projectId of pinnedProjects) {
+          currentStage++;
+          try {
+            const pinnedStart = Date.now();
+            const project = allProjects.find((p) => p.id === projectId);
+            if (!project) {
+              yield {
+                items: [],
+                progress: { current: currentStage, total: totalStages, stage: `${instance.name}: ${projectId} (Not Found)` }
+              };
+              continue;
+            }
 
-              try {
-                // Fetch pipeline runs and new tasks in parallel
-                const [pipelineRuns, newTasks] = await Promise.allSettled([
-                  client.getPipelineRuns(projectId, 10),
-                  (async () => {
-                    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                    return client.getNewTasksForProject(projectId, oneDayAgo);
-                  })()
-                ]);
+            const pinnedItems: InboxItem[] = [];
+            
+            // Fetch pipeline runs and new tasks in parallel
+            const parallelStart = Date.now();
+            const [pipelineRuns, newTasks] = await Promise.allSettled([
+              client.getPipelineRuns(projectId, 10),
+              (async () => {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                return client.getNewTasksForProject(projectId, oneDayAgo);
+              })()
+            ]);
 
-                if (pipelineRuns.status === 'fulfilled') {
-                  pinnedItems.push(
-                    ...pipelineRuns.value
-                      .filter((run) => run.state === 'inProgress' || run.state === 'completed')
-                      .slice(0, 5)
-                      .map((run) =>
-                        this.convertPipelineRunToInboxItem(run, instance, projectId, project.name)
-                      )
-                  );
-                }
+            const parallelTime = Date.now() - parallelStart;
+            console.log(`[ADO] Fetched pinned project data for ${project.name} in ${parallelTime}ms`);
+            
+            if (pipelineRuns.status === 'fulfilled') {
+              pinnedItems.push(
+                ...pipelineRuns.value
+                  .filter((run) => run.state === 'inProgress' || run.state === 'completed')
+                  .slice(0, 5)
+                  .map((run) =>
+                    this.convertPipelineRunToInboxItem(run, instance, projectId, project.name)
+                  )
+              );
+            }
 
-                if (newTasks.status === 'fulfilled') {
-                  pinnedItems.push(
-                    ...newTasks.value.map((task) =>
-                      this.convertWorkItemToInboxItem(task, instance, project.name)
-                    )
-                  );
-                }
-              } catch (error) {
-                console.error(`Error fetching data for project ${projectId}:`, error);
-              }
-            })
-          );
-          
-          yield {
-            items: pinnedItems,
-            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Pinned Projects` }
-          };
-        } catch (error) {
-          console.error(`Error fetching pinned projects from instance ${instance.name}:`, error);
-          yield {
-            items: [],
-            progress: { current: currentStage, total: totalStages, stage: `${instance.name}: Pinned Projects (Error)` }
-          };
+            if (newTasks.status === 'fulfilled') {
+              pinnedItems.push(
+                ...newTasks.value.map((task) =>
+                  this.convertWorkItemToInboxItem(task, instance, project.name)
+                )
+              );
+            }
+            
+            const pinnedTotalTime = Date.now() - pinnedStart;
+            console.log(`[ADO] Completed pinned project ${project.name} in ${pinnedTotalTime}ms (${pinnedItems.length} items)`);
+            
+            yield {
+              items: pinnedItems,
+              progress: { current: currentStage, total: totalStages, stage: `${instance.name}: ${project.name}` }
+            };
+          } catch (error) {
+            console.error(`Error fetching data for project ${projectId}:`, error);
+            yield {
+              items: [],
+              progress: { current: currentStage, total: totalStages, stage: `${instance.name}: ${projectId} (Error)` }
+            };
+          }
         }
       } catch (error) {
         console.error(`Error fetching data from instance ${instance.name}:`, error);
-        currentStage += 3; // Skip all stages for this instance
+        // Skip remaining stages for this instance
+        currentStage += 2 + pinnedProjectsCount;
       }
     }
   }

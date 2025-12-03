@@ -20,6 +20,8 @@ export interface IntegrationExchange {
   getWorkItems(): WorkItem[];
   getPullRequests(): PullRequest[];
   getPipelines(): Pipeline[];
+  getUnreadCount(): number;
+
 
   fetchItems(options?: FetchItemsOptions): Promise<{
     workItems: WorkItem[];
