@@ -14,53 +14,68 @@ export class InboxBroker {
   private exchanges: Map<string, IntegrationExchange> = new Map();
 
   constructor() {
-    this.refreshExchanges();
+    // Don't create exchanges in constructor - they'll be created lazily
   }
 
   /**
-   * Refresh the exchanges map based on current storage
+   * Lazily create an exchange for an instance
    */
-  private refreshExchanges(): void {
+  private ensureExchange(instanceId: string): IntegrationExchange | null {
     if (typeof window === "undefined") {
-      return;
+      return null;
+    }
+
+    // Return existing exchange if already created
+    if (this.exchanges.has(instanceId)) {
+      return this.exchanges.get(instanceId)!;
+    }
+
+    // Load instance config and create exchange
+    const instance = integrationStorage.loadInstance(instanceId);
+    if (!instance) {
+      return null;
+    }
+
+    try {
+      const exchange =
+        instance.instanceType === "ado"
+          ? createAdoExchange(instance.id)
+          : createGhExchange(instance.id);
+      
+      this.exchanges.set(instance.id, exchange);
+      return exchange;
+    } catch (error) {
+      console.error(`Failed to create exchange for ${instanceId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get exchange for a specific instance (lazy load)
+   */
+  getExchange(instanceId: string): IntegrationExchange | null {
+    return this.ensureExchange(instanceId);
+  }
+
+  /**
+   * Get all exchanges (lazy load)
+   */
+  getAllExchanges(): IntegrationExchange[] {
+    if (typeof window === "undefined") {
+      return [];
     }
 
     const instances = this.getInstances();
-    const currentIds = new Set(instances.map((i) => i.id));
+    const exchanges: IntegrationExchange[] = [];
 
-    // Remove exchanges for deleted instances
-    for (const [id] of this.exchanges) {
-      if (!currentIds.has(id)) {
-        this.exchanges.delete(id);
+    for (const instance of instances) {
+      const exchange = this.ensureExchange(instance.id);
+      if (exchange) {
+        exchanges.push(exchange);
       }
     }
 
-    // Add exchanges for new instances
-    instances.forEach((instance) => {
-      if (!this.exchanges.has(instance.id)) {
-        const exchange =
-          instance.instanceType === "ado"
-            ? createAdoExchange(instance.id)
-            : createGhExchange(instance.id);
-        this.exchanges.set(instance.id, exchange);
-      }
-    });
-  }
-
-  /**
-   * Get exchange for a specific instance
-   */
-  getExchange(instanceId: string): IntegrationExchange | null {
-    this.refreshExchanges(); // Ensure exchanges are up to date
-    return this.exchanges.get(instanceId) || null;
-  }
-
-  /**
-   * Get all exchanges
-   */
-  getAllExchanges(): IntegrationExchange[] {
-    this.refreshExchanges();
-    return Array.from(this.exchanges.values());
+    return exchanges;
   }
 
   /**
@@ -186,6 +201,62 @@ export class InboxBroker {
    */
   isConfigured(): boolean {
     return this.getInstances().length > 0;
+  }
+
+  /**
+   * Mark an item as read across all exchanges
+   */
+  markAsRead(itemId: string): void {
+    const exchanges = this.getAllExchanges();
+    exchanges.forEach(exchange => {
+      const updateUnreadState = (items: any[]) => {
+        const item = items.find(i => i.id === itemId);
+        if (item) {
+          item.unread = false;
+          return true;
+        }
+        return false;
+      };
+      
+      // Update in all cached arrays and persist if found
+      const found = updateUnreadState(exchange.getWorkItems()) ||
+                    updateUnreadState(exchange.getPullRequests()) ||
+                    updateUnreadState(exchange.getPipelines());
+      
+      if (found && typeof window !== 'undefined') {
+        // Persist to localStorage
+        const { updateItemUnreadState } = require('@/lib/utils/unread-storage');
+        updateItemUnreadState(exchange.id, itemId, false);
+      }
+    });
+  }
+
+  /**
+   * Mark an item as unread across all exchanges
+   */
+  markAsUnread(itemId: string): void {
+    const exchanges = this.getAllExchanges();
+    exchanges.forEach(exchange => {
+      const updateUnreadState = (items: any[]) => {
+        const item = items.find(i => i.id === itemId);
+        if (item) {
+          item.unread = true;
+          return true;
+        }
+        return false;
+      };
+      
+      // Update in all cached arrays and persist if found
+      const found = updateUnreadState(exchange.getWorkItems()) ||
+                    updateUnreadState(exchange.getPullRequests()) ||
+                    updateUnreadState(exchange.getPipelines());
+      
+      if (found && typeof window !== 'undefined') {
+        // Persist to localStorage
+        const { updateItemUnreadState } = require('@/lib/utils/unread-storage');
+        updateItemUnreadState(exchange.id, itemId, true);
+      }
+    });
   }
 }
 
