@@ -25,6 +25,8 @@ export function transformToPullRequest(
     status = item.pull_request?.merged_at ? "merged" : "closed";
   }
 
+  const repository = parseRepositoryName(item.repository_url);
+  
   return {
     id: `gh-pr-${instance.id}-${crypto.randomUUID()}`,
     type: "pullRequest",
@@ -38,7 +40,8 @@ export function transformToPullRequest(
     unread: true, // Will be updated by the exchange
     url: item.html_url,
     organization: instance.name || "GitHub",
-    repository: parseRepositoryName(item.repository_url),
+    repository,
+    project: repository, // For GitHub, project and repository are the same
   };
 }
 
@@ -55,7 +58,7 @@ export function transformToWorkItem(
   }
 
   const classifier = createWorkItemClassifier(GithubMappings);
-  
+  const repository = parseRepositoryName(item.repository_url);
   
   return {
     id: `gh-issue-${instance.id}-${crypto.randomUUID()}`,
@@ -69,7 +72,8 @@ export function transformToWorkItem(
     prevUpdateTimestamp: null,
     unread: true, // Will be updated by the exchange
     url: item.html_url,
-    repository: parseRepositoryName(item.repository_url),
+    repository,
+    project: repository, // For GitHub, project and repository are the same
     organization: instance.name || "GitHub",
     workItemKind: classifier.classify({ typeName: "workItem", title: item.title, labels: [] }).kind,
   };

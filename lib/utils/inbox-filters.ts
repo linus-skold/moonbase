@@ -41,9 +41,12 @@ function getItemValueForFilter(
 ): string | undefined {
   switch (filterType) {
     case "project":
+      return item.project;
+    case "repo":
+    case "repository":
       return item.repository;
     case "org":
-      return ""; // Placeholder, adjust with item property if available
+      return item.organization;
     case "status":
       return item.status;
     case "type":
@@ -83,6 +86,7 @@ export function applyTextSearch(
     (item) =>
       item.title?.toLowerCase().includes(query) ||
       item.description?.toLowerCase().includes(query) ||
+      item.project?.toLowerCase().includes(query) ||
       item.repository?.toLowerCase().includes(query)
   );
 }
@@ -101,10 +105,10 @@ export function applyTypeFilter(
 export function groupItemsByProject(items: TypedItem[]) {
   const grouped = items.reduce(
     (prev: Record<string, Project>, next: TypedItem) => {
-      const projectKey = next.repository || "Unknown Project";
+      const projectKey = next.project || "Unknown Project";
       if (!prev[projectKey]) {
         prev[projectKey] = {
-          project: next.repository,
+          project: next.project,
           organization: next.organization,
           items: [],
           latestUpdate: 0,
