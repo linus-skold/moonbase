@@ -7,7 +7,8 @@ export const ItemSchema = z.object({
   type: z.string(), // needs to be specified further
   title: z.string(),
   repository: z.string(),
-  organization: z.string(),
+  project: z.string(), // Project/repo name for grouping (same as repository for GitHub, different for ADO)
+  organization: z.string(), // Integration instance name
   description: z.string().optional(),
   itemStatus: z.string(), // needs to be specified further maybe
   createdTimestamp: z.number(), // set on item creation
