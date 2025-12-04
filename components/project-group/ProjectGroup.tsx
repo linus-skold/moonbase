@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
+import { Project } from "@/lib/schema/project.schema";
 
 
 const getInstanceIcon = (instanceType: string) => {
@@ -37,10 +38,7 @@ const integrationColor: Record<string, string> = {
 };
 
 type ProjectCardComponentProps = {
-  group: {
-    projectName: string;
-    instanceName: string;
-  };
+  group: Project;
   instanceType?: string;
   children?: React.ReactNode;
   className?: string;
@@ -91,11 +89,11 @@ export const ProjectCardComponent = ({
               />
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold truncate flex items-center gap-2">
-                  {group.projectName}
+                  {group.project}
                 </h2>
 
                 <p className="text-xs text-muted-foreground">
-                  {group.instanceName}
+                  {group.organization}
                 </p>
               </div>
             </CollapsibleTrigger>
