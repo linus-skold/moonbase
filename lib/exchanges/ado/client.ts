@@ -14,19 +14,23 @@ import type { AdoPipeline, AdoPipelineRun } from "./schema/pipeline.schema";
 import type { AdoProject } from "./schema/project.schema";
 import { AdoPullRequestSchema, type AdoPullRequest } from "./schema/pr.schema";
 import type { AdoWorkItem } from "./schema/work-item.schema";
-import type { AdoInstance } from "./schema/instance.schema";
+import type { AdoIntegrationInstance } from "./schema/config.schema";
 
 export class AdoClient {
   private connection: azdev.WebApi;
   private baseUrl: string;
   private userId: string;
-  private config?: AdoInstance;
+  private config?: AdoIntegrationInstance;
 
-  constructor(instance: AdoInstance) {
+  constructor(instance: AdoIntegrationInstance) {
     this.baseUrl =
       instance.baseUrl || `https://dev.azure.com/${instance.organization}`;
     this.userId = instance.userId;
     this.config = instance;
+
+    if (!instance.personalAccessToken) {
+      throw new Error('Personal access token is required for ADO client');
+    }
 
     const authHandler = azdev.getPersonalAccessTokenHandler(
       instance.personalAccessToken
@@ -34,9 +38,14 @@ export class AdoClient {
     this.connection = new azdev.WebApi(this.baseUrl, authHandler);
   }
 
-  async getProjects(): Promise<AdoProject[]> {
+  /**
+   * Fetch projects in batches
+   * @param top Number of projects to fetch per batch (default: 50, max: 100)
+   * @param skip Number of projects to skip
+   */
+  async getProjects(top: number = 50, skip: number = 0): Promise<AdoProject[]> {
     const coreApi = await this.connection.getCoreApi();
-    const projects = await coreApi.getProjects();
+    const projects = await coreApi.getProjects(undefined, top, skip);
 
     return projects.map((p: TeamProjectReference) => ({
       id: p.id!,
@@ -54,6 +63,30 @@ export class AdoClient {
         | "public",
       lastUpdateTime: p.lastUpdateTime?.toISOString(),
     }));
+  }
+
+  /**
+   * Fetch all projects (handles batching internally)
+   * @param batchSize Number of projects to fetch per batch (default: 50)
+   */
+  async getAllProjects(batchSize: number = 50): Promise<AdoProject[]> {
+    const allProjects: AdoProject[] = [];
+    let skip = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const batch = await this.getProjects(batchSize, skip);
+      allProjects.push(...batch);
+      
+      // If we got fewer results than requested, we've reached the end
+      if (batch.length < batchSize) {
+        hasMore = false;
+      } else {
+        skip += batchSize;
+      }
+    }
+
+    return allProjects;
   }
 
   // Helper to process tasks with concurrency limit
@@ -95,14 +128,18 @@ export class AdoClient {
     return results.filter((r) => r !== undefined);
   }
 
-  async getPullRequestsAssignedToMe(
-    options?: { 
-      projectId?: string; 
-      projectIds?: string[];
-      onProgress?: (current: number, total: number, projectName: string) => void;
-    }
-  ): Promise<AdoPullRequest[]> {
+  /**
+   * Fetch pull requests assigned to the current user (as reviewer or creator)
+   * @param projectIds Optional array of project IDs to filter by
+   */
+  async getPullRequestsAssignedToMe(projectIds?: string[]): Promise<AdoPullRequest[]> {
     const gitApi = await this.connection.getGitApi();
+
+    // Check if userId is configured
+    if (!this.userId) {
+      console.warn(`[ADO Client] Warning: userId is not configured for this instance. Please set the userId field in your ADO instance configuration.`);
+      return [];
+    }
 
     // Get PRs where I'm a reviewer
     const reviewerCriteria: GitPullRequestSearchCriteria = {
@@ -116,122 +153,72 @@ export class AdoClient {
       creatorId: this.userId,
     };
 
-    let pullRequests: GitPullRequest[] = [];
-
-    // Support both single projectId and array of projectIds
-    const projectId = options?.projectId;
-    const projectIds = options?.projectIds;
-
-    if (projectId) {
-      const repos = await gitApi.getRepositories(projectId);
-
-      // Fetch PRs from all repos in parallel with concurrency control
-      const prBatches = await this.processConcurrently(
-        repos,
-        async (repo) => {
-          try {
-            // Fetch both reviewer PRs and created PRs in parallel
-            const [reviewerPrs, creatorPrs] = await Promise.all([
-              gitApi
-                .getPullRequests(repo.id!, reviewerCriteria, projectId)
-                .catch(() => []),
-              gitApi
-                .getPullRequests(repo.id!, creatorCriteria, projectId)
-                .catch(() => []),
-            ]);
-
-            // Combine and deduplicate by PR ID
-            const allPrs = [...(reviewerPrs || []), ...(creatorPrs || [])];
-            const uniquePrs = Array.from(
-              new Map(allPrs.map((pr) => [pr.pullRequestId, pr])).values()
-            );
-
-            return uniquePrs;
-          } catch (error) {
-            console.error(`Error fetching PRs for repo ${repo.name}:`, error);
-            return [];
-          }
-        },
-        10 // Process 10 repos concurrently
-      );
-
-      pullRequests = prBatches.flat();
+    // Determine which projects to query
+    let projects: AdoProject[];
+    if (projectIds && projectIds.length > 0) {
+      const allProjects = await this.getAllProjects(50);
+      projects = allProjects.filter(p => projectIds.includes(p.id));
     } else {
-      // Use provided project IDs or fetch all projects
-      let projects: AdoProject[];
-      if (projectIds && projectIds.length > 0) {
-        const allProjects = await this.getProjects();
-        projects = allProjects.filter(p => projectIds.includes(p.id));
-      } else {
-        projects = await this.getProjects();
-      }
-
-      // Fetch PRs from specified projects with progress tracking
-      let processedCount = 0;
-      const prBatches = await this.processConcurrently(
-        projects,
-        async (project) => {
-          processedCount++;
-          options?.onProgress?.(processedCount, projects.length, project.name);
-          try {
-            const repos = await gitApi.getRepositories(project.id);
-
-            // Fetch PRs from all repos in this project in parallel
-            const projectPrBatches = await this.processConcurrently(
-              repos,
-              async (repo) => {
-                try {
-                  // Fetch both reviewer PRs and created PRs in parallel
-                  const [reviewerPrs, creatorPrs] = await Promise.all([
-                    gitApi
-                      .getPullRequests(repo.id!, reviewerCriteria, project.id)
-                      .catch(() => []),
-                    gitApi
-                      .getPullRequests(repo.id!, creatorCriteria, project.id)
-                      .catch(() => []),
-                  ]);
-
-                  // Combine and deduplicate by PR ID
-                  const allPrs = [
-                    ...(reviewerPrs || []),
-                    ...(creatorPrs || []),
-                  ];
-                  const uniquePrs = Array.from(
-                    new Map(allPrs.map((pr) => [pr.pullRequestId, pr])).values()
-                  );
-
-                  return uniquePrs;
-                } catch (error) {
-                  console.error(
-                    `Error fetching PRs for repo ${repo.name} in project ${project.name}:`,
-                    error
-                  );
-                  return [];
-                }
-              },
-              5 // Process 5 repos per project concurrently
-            );
-
-            return projectPrBatches.flat();
-          } catch (error) {
-            console.error(
-              `Error fetching repos for project ${project.name}:`,
-              error
-            );
-            return [];
-          }
-        },
-        3 // Process 3 projects concurrently
-      );
-
-      pullRequests = prBatches.flat();
+      // Fetch all projects
+      projects = await this.getAllProjects(50);
     }
 
-    // Check if userId is configured
-    if (!this.userId) {
-      console.warn(`[ADO Client] Warning: userId is not configured for this instance. All PRs will be filtered out. Please set the userId field in your ADO instance configuration.`);
-      return [];
-    }
+    // Fetch PRs from projects in parallel (10 concurrent requests)
+    const prBatches = await this.processConcurrently(
+      projects,
+      async (project) => {
+        try {
+          const repos = await gitApi.getRepositories(project.id);
+
+          // Fetch PRs from all repos in this project in parallel
+          const projectPrBatches = await this.processConcurrently(
+            repos,
+            async (repo) => {
+              try {
+                // Fetch both reviewer PRs and created PRs in parallel
+                const [reviewerPrs, creatorPrs] = await Promise.all([
+                  gitApi
+                    .getPullRequests(repo.id!, reviewerCriteria, project.id)
+                    .catch(() => []),
+                  gitApi
+                    .getPullRequests(repo.id!, creatorCriteria, project.id)
+                    .catch(() => []),
+                ]);
+
+                // Combine and deduplicate by PR ID
+                const allPrs = [
+                  ...(reviewerPrs || []),
+                  ...(creatorPrs || []),
+                ];
+                const uniquePrs = Array.from(
+                  new Map(allPrs.map((pr) => [pr.pullRequestId, pr])).values()
+                );
+
+                return uniquePrs;
+              } catch (error) {
+                console.error(
+                  `Error fetching PRs for repo ${repo.name} in project ${project.name}:`,
+                  error
+                );
+                return [];
+              }
+            },
+            5 // Process 5 repos per project concurrently
+          );
+
+          return projectPrBatches.flat();
+        } catch (error) {
+          console.error(
+            `Error fetching repos for project ${project.name}:`,
+            error
+          );
+          return [];
+        }
+      },
+      10 // Process 10 projects concurrently
+    );
+
+    const pullRequests = prBatches.flat();
 
     // Filter PRs: Keep only those where we're the creator OR a reviewer
     const filteredPRs = pullRequests.filter((pr) => {
@@ -282,9 +269,12 @@ export class AdoClient {
     });
   }
 
-  async getWorkItemsAssignedToMe(projectId?: string): Promise<AdoWorkItem[]> {
+  /**
+   * Fetch work items assigned to the current user
+   * @param projectIds Optional array of project IDs to filter by
+   */
+  async getWorkItemsAssignedToMe(projectIds?: string[]): Promise<AdoWorkItem[]> {
     const witApi = await this.connection.getWorkItemTrackingApi();
-
 
     const customQuery = this.config?.customWorkItemQuery;
     const ignoredStates = this.config?.ignoredWorkItemStates || ['Closed', 'Removed'];
@@ -293,25 +283,53 @@ export class AdoClient {
       ? ignoredStates.map(state => `AND [System.State] <> '${state}'`).join(' ')
       : '';
 
-    let query : Wiql = { query: customQuery };
+    // If custom query is provided, use it
+    if (customQuery) {
+      const query: Wiql = { query: customQuery };
+      const queryResult = await witApi.queryByWiql(query);
+      const workItemIds = queryResult.workItems?.map((wi) => wi.id!) || [];
+
+      if (workItemIds.length === 0) {
+        return [];
+      }
+
+      return this.fetchWorkItemsByIds(workItemIds);
+    }
+
+    // Otherwise, build a standard query
+    const projectFilter = projectIds && projectIds.length > 0
+      ? `AND [System.TeamProject] IN (${projectIds.map(id => `'${id}'`).join(', ')})`
+      : '';
 
     const wiql: Wiql = {
       query: `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.CreatedDate], [System.ChangedDate]
           FROM WorkItems
           WHERE [System.AssignedTo] = @Me
           ${stateFilter}
+          ${projectFilter}
           ORDER BY [System.ChangedDate] DESC`,
     };
 
-    const queryResult = await witApi.queryByWiql( customQuery ? query : wiql, { project: projectId });
+    const queryResult = await witApi.queryByWiql(wiql);
     const workItemIds = queryResult.workItems?.map((wi) => wi.id!) || [];
 
     if (workItemIds.length === 0) {
       return [];
     }
 
-    // Fetch work item details in batches of 200 (API limit)
-    const batchSize = 200;
+    return this.fetchWorkItemsByIds(workItemIds);
+  }
+
+  /**
+   * Fetch work items by their IDs in batches
+   * @param workItemIds Array of work item IDs
+   * @param batchSize Number of items to fetch per batch (default: 200, max: 200)
+   */
+  private async fetchWorkItemsByIds(
+    workItemIds: number[],
+    batchSize: number = 200
+  ): Promise<AdoWorkItem[]> {
+    const witApi = await this.connection.getWorkItemTrackingApi();
     const workItems: AdoWorkItem[] = [];
 
     for (let i = 0; i < workItemIds.length; i += batchSize) {
@@ -343,127 +361,84 @@ export class AdoClient {
     return workItems;
   }
 
+  /**
+   * Fetch recent pipeline runs for specific projects
+   * @param projectIds Array of project IDs to fetch pipeline runs for
+   * @param top Number of runs to fetch per project (default: 10)
+   */
   async getPipelineRuns(
-    projectId: string,
-    top: number = 20
+    projectIds: string[],
+    top: number = 10
   ): Promise<AdoPipelineRun[]> {
     const buildApi = await this.connection.getBuildApi();
-    const builds = await buildApi.getBuilds(
-      projectId,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      top
+    
+    // Fetch pipeline runs for each project in parallel
+    const runBatches = await this.processConcurrently(
+      projectIds,
+      async (projectId) => {
+        try {
+          const builds = await buildApi.getBuilds(
+            projectId,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            top
+          );
+
+          return builds.map((build: Build) => ({
+            id: build.id!,
+            name: build.buildNumber!,
+            state:
+              build.status === 2
+                ? "completed"
+                : ("inProgress" as
+                    | "completed"
+                    | "inProgress"
+                    | "canceling"
+                    | "notStarted"),
+            result:
+              build.result === 2
+                ? ("succeeded" as const)
+                : build.result === 4
+                ? ("failed" as const)
+                : build.result === 8
+                ? ("partiallySucceeded" as const)
+                : build.result === 32
+                ? ("canceled" as const)
+                : undefined,
+            createdDate: build.queueTime!.toISOString(),
+            finishedDate: build.finishTime?.toISOString(),
+            url:
+              build.url ||
+              `${this.baseUrl}/${projectId}/_build/results?buildId=${build.id}`,
+            pipeline: {
+              id: build.definition!.id!,
+              name: build.definition!.name!,
+            },
+            _links: {
+              web: {
+                href:
+                  build._links?.web?.href ||
+                  `${this.baseUrl}/${projectId}/_build/results?buildId=${build.id}`,
+              },
+            },
+          }));
+        } catch (error) {
+          console.error(`Error fetching pipeline runs for project ${projectId}:`, error);
+          return [];
+        }
+      },
+      3 // Process 3 projects concurrently
     );
 
-    return builds.map((build: Build) => ({
-      id: build.id!,
-      name: build.buildNumber!,
-      state:
-        build.status === 2
-          ? "completed"
-          : ("inProgress" as
-              | "completed"
-              | "inProgress"
-              | "canceling"
-              | "notStarted"),
-      result:
-        build.result === 2
-          ? "succeeded"
-          : build.result === 4
-          ? "failed"
-          : undefined,
-      createdDate: build.queueTime!.toISOString(),
-      finishedDate: build.finishTime?.toISOString(),
-      url:
-        build.url ||
-        `${this.baseUrl}/${projectId}/_build/results?buildId=${build.id}`,
-      pipeline: {
-        id: build.definition!.id!,
-        name: build.definition!.name!,
-      },
-      _links: {
-        web: {
-          href:
-            build._links?.web?.href ||
-            `${this.baseUrl}/${projectId}/_build/results?buildId=${build.id}`,
-        },
-      },
-    }));
-  }
-
-  async getPipelines(projectId: string): Promise<AdoPipeline[]> {
-    const buildApi = await this.connection.getBuildApi();
-    const definitions = await buildApi.getDefinitions(projectId);
-
-    return definitions.map((def) => ({
-      id: def.id!,
-      name: def.name!,
-      folder: def.path,
-      revision: def.revision || 1,
-    }));
-  }
-
-  async getNewTasksForProject(
-    projectId: string,
-    sinceDate?: Date
-  ): Promise<AdoWorkItem[]> {
-    const witApi = await this.connection.getWorkItemTrackingApi();
-
-    const dateFilter = sinceDate
-      ? `AND [System.CreatedDate] >= '${sinceDate.toISOString()}'`
-      : "";
-
-    const wiql: Wiql = {
-      query: `SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.CreatedDate], [System.ChangedDate]
-              FROM WorkItems
-              WHERE [System.TeamProject] = @Project
-              AND [System.AssignedTo] = @Me
-              AND [System.WorkItemType] = 'Task'
-              ${dateFilter}
-              ORDER BY [System.CreatedDate] DESC`,
-    };
-
-    const queryResult = await witApi.queryByWiql(wiql, { project: projectId });
-    const workItemIds =
-      queryResult.workItems?.map((wi) => wi.id!).slice(0, 50) || [];
-
-    if (workItemIds.length === 0) {
-      return [];
-    }
-
-    const items = await witApi.getWorkItems(
-      workItemIds,
-      undefined,
-      undefined,
-      1
-    );
-
-    return items.map((wi: WorkItem) => ({
-      id: wi.id!,
-      rev: wi.rev!,
-      fields: {
-        "System.Title": wi.fields!["System.Title"],
-        "System.State": wi.fields!["System.State"],
-        "System.WorkItemType": wi.fields!["System.WorkItemType"],
-        "System.AssignedTo": wi.fields!["System.AssignedTo"],
-        "System.CreatedDate": wi.fields!["System.CreatedDate"],
-        "System.ChangedDate": wi.fields!["System.ChangedDate"],
-        "System.CreatedBy": wi.fields!["System.CreatedBy"],
-        "System.AreaPath": wi.fields!["System.AreaPath"],
-        "System.IterationPath": wi.fields!["System.IterationPath"],
-        "System.Description": wi.fields!["System.Description"],
-      },
-      url: wi.url!,
-      _links: wi._links,
-    }));
+    return runBatches.flat();
   }
 }

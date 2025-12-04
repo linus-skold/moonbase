@@ -22,10 +22,10 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
     return newItems.map(newItem => {
       // Check localStorage first for persisted state
       if (newItem.id in unreadState) {
-        return { ...newItem, unread: unreadState[newItem.id] };
+        return { ...newItem, unread: unreadState[newItem.id] } as T;
       }
       // New item - mark as unread by default
-      return { ...newItem, unread: true };
+      return newItem;
     });
   };
 
@@ -65,6 +65,14 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
       ].filter(item => item.unread).length;
     },
     
+    getAllItems: async () => {
+      return [
+        ...cachedWorkItems,
+        ...cachedPullRequests,
+        ...cachedPipelines,
+      ];
+    },
+    
     // Async fetcher - calls server-side API route
     fetchItems: async (options) => {
       try {
@@ -87,14 +95,9 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
         const data = await response.json();
         
         // Merge unread state from localStorage
-        const workItemsWithUnread = mergeUnreadState(data.workItems || []);
-        const pullRequestsWithUnread = mergeUnreadState(data.pullRequests || []);
-        const pipelinesWithUnread = mergeUnreadState(data.pipelines || []);
-        
-        // Update cache with merged data
-        cachedWorkItems = workItemsWithUnread;
-        cachedPullRequests = pullRequestsWithUnread;
-        cachedPipelines = pipelinesWithUnread;
+        cachedWorkItems = mergeUnreadState<WorkItem>(data.workItems || []);
+        cachedPullRequests = mergeUnreadState<PullRequest>(data.pullRequests || []);
+        cachedPipelines = mergeUnreadState<Pipeline>(data.pipelines || []);
         
         // Persist unread state
         persistUnreadState();
