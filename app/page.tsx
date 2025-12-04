@@ -494,7 +494,7 @@ export default function Page() {
             </InboxRow>
           )}
 
-          <InboxRow className="flex-col">
+            <InboxRow className="flex-col">
             {Object.keys(groupedFilteredItems).length === 0 && !refreshing ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Inbox className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -515,10 +515,7 @@ export default function Page() {
                 return (
                   <ProjectCardComponent
                     key={projectKey}
-                    group={{
-                      projectName: projectKey,
-                      instanceName: group.instance?.name || "Unknown",
-                    }}
+                    group={group}
                     instanceType={group.instance?.instanceType}
                     onMarkAllAsRead={() => handleMarkAllAsRead(itemIds)}
                     onMarkAllAsUnread={() => handleMarkAllAsUnread(itemIds)}
