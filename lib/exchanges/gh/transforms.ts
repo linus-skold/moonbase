@@ -1,7 +1,8 @@
+import GithubMappings from "./mappings";
 import { GhIntegrationInstance } from "./schema";
 import type { IssueSearchResultItem } from "./schema/api";
 import type { PullRequest, WorkItem } from "@/lib/schema/item.schema";
-
+import { createWorkItemClassifier } from "@/lib/utils/workItemClassifier";
 
 const parseRepositoryName = (repositoryUrl: string): string => {
   const parts = repositoryUrl.split("/");
@@ -53,8 +54,9 @@ export function transformToWorkItem(
     throw new Error(`Item ${item.id} is a pull request, not an issue`);
   }
 
-  console.log({instance});
-
+  const classifier = createWorkItemClassifier(GithubMappings);
+  
+  
   return {
     id: `gh-issue-${instance.id}-${crypto.randomUUID()}`,
     type: "workItem",
@@ -69,5 +71,6 @@ export function transformToWorkItem(
     url: item.html_url,
     repository: parseRepositoryName(item.repository_url),
     organization: instance.name || "GitHub",
+    workItemKind: classifier.classify({ typeName: "workItem", title: item.title, labels: [] }).kind,
   };
 }
