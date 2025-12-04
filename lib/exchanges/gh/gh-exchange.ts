@@ -2,14 +2,16 @@ import { IntegrationExchange } from "@/lib/exchanges/integration-exchange";
 import { integrationStorage } from "@/lib/utils/integration-storage";
 import { loadUnreadState, saveUnreadState } from "@/lib/utils/unread-storage";
 import type { WorkItem, PullRequest, Pipeline } from "@/lib/schema/item.schema";
-import { fetchInboxItems } from "./service";
+import { GhClient } from "./client";
+import { GhIntegrationInstance } from "./schema/config.schema";
+import { transformToPullRequest, transformToWorkItem } from "./transforms";
 
 export const createExchange = (instanceId: string): IntegrationExchange => {
-  const instanceConfig = integrationStorage.loadInstance(instanceId);
-  
-  if (!instanceConfig || instanceConfig.instanceType !== 'gh') {
-    throw new Error(`GitHub instance ${instanceId} not found`);
-  }
+  const instanceConfig = integrationStorage.loadInstance<GhIntegrationInstance>(instanceId);
+  if(!instanceConfig || instanceConfig.instanceType !== "gh")
+    throw new Error(`No GitHub integration instance found with ID ${instanceId}`);
+
+  const client = new GhClient(instanceConfig);
 
   // Local cache
   let cachedWorkItems: WorkItem[] = [];
@@ -40,6 +42,7 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
     saveUnreadState(instanceId, state);
   };
 
+
   return {
     id: instanceId,
     name: instanceConfig.name,
@@ -65,23 +68,33 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
         ...cachedPipelines,
       ].filter(item => item.unread).length;
     },
-
+    getAllItems: async () => {
+      return [
+        ...cachedWorkItems,
+        ...cachedPullRequests,
+        ...cachedPipelines,
+      ];
+    },
     // Async fetcher - updates cache and returns fresh data
-    fetchItems: async (options) => {
+    fetchItems: async () => {
       try {
-        // should probably check the cache first ? 
-        // Fetch fresh data from service
-        const items = await fetchInboxItems();
         
-        // Separate by type
-        const newWorkItems = items.filter((item): item is WorkItem => item.type === 'workItem');
-        const newPullRequests = items.filter((item): item is PullRequest => item.type === 'pullRequest');
-        const newPipelines = items.filter((item): item is Pipeline => item.type === 'pipeline');
+        const issueResults = await client.getIssuesAssignedToMe();
+        const prAssignedResults = await client.getPullRequestsAssignedToMe();
+        const prCreatedResults = await client.getPullRequestsCreatedByMe();
+
+        // Transform GitHub API results to our internal item types
+        const workItems = issueResults.map(item => transformToWorkItem(item, instanceConfig));
+        const pullRequestsAssigned = prAssignedResults.map(item => transformToPullRequest(item, instanceConfig));
+        const pullRequestsCreated = prCreatedResults.map(item => transformToPullRequest(item, instanceConfig));
         
+        // Combine all PRs (assigned and created)
+        const allPullRequests = [...pullRequestsAssigned, ...pullRequestsCreated];
+  
         // Merge unread state from localStorage
-        cachedWorkItems = mergeUnreadState(newWorkItems);
-        cachedPullRequests = mergeUnreadState(newPullRequests);
-        cachedPipelines = mergeUnreadState(newPipelines);
+        cachedWorkItems = mergeUnreadState(workItems);
+        cachedPullRequests = mergeUnreadState(allPullRequests);
+        cachedPipelines = mergeUnreadState([]);
         
         // Persist unread state
         persistUnreadState();
