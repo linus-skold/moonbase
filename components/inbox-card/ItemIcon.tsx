@@ -16,7 +16,7 @@ import {
   FlaskConical,
   Wrench
 } from 'lucide-react';
-import { InboxItem } from '@/lib/schema/inbox.schema';
+import { TypedItem } from '@/lib/schema/item.schema';
 import { WorkItemKind } from '@/lib/schema/workItemKind.schema';
 
 
@@ -60,7 +60,7 @@ const getWorkItemKindIcon = (kind?: WorkItemKind) => {
   }
 };
 
-const getItemIcon = (type: InboxItem['type'], workItemKind?: WorkItemKind) => {
+const getItemIcon = (type: TypedItem["type"], workItemKind?: WorkItemKind) => {
   switch (type) {
     case 'pullRequest':
       return <GitPullRequest className="h-4 w-4" />;
@@ -74,35 +74,16 @@ const getItemIcon = (type: InboxItem['type'], workItemKind?: WorkItemKind) => {
   }
 };
 
-
-// This might have to change in a big way because right now this is really unclear what its supposed to represent
-const getPriorityColor = (priority?: InboxItem['priority']) => {
-  switch (priority) {
-    case 'critical':
-      return 'text-red-600 dark:text-red-400';
-    case 'high':
-      return 'text-orange-600 dark:text-orange-400';
-    case 'medium':
-      return 'text-yellow-600 dark:text-yellow-400';
-    case 'low':
-      return 'text-blue-600 dark:text-blue-400';
-    default:
-      return 'text-gray-600 dark:text-gray-400';
-  }
-};
-
-
 interface ItemIconProps {
-  type: InboxItem['type'];
-  priority?: InboxItem['priority'];
-  workItemKind?: WorkItemKind;
+  item: TypedItem;
 }
 
-
-export const ItemIcon = ({ type, priority, workItemKind }: ItemIconProps) => {
+export const ItemIcon = ({ item }: ItemIconProps) => {
+  const workItemKind = item.type === 'workItem' ? item.workItemKind : undefined;
+  
   return (
-    <div className={`mt-1 flex-shrink-0 ${getPriorityColor(priority)}`}>
-      {getItemIcon(type, workItemKind)}
+    <div className="mt-1 flex-shrink-0">
+      {getItemIcon(item.type, workItemKind)}
     </div>
   );
 };
