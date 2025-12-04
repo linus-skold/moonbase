@@ -7,9 +7,12 @@ import {
 const storage = create("integration-config", "1.0", IntegrationsConfigSchema);
 
 export const integrationStorage = {
-  loadInstance: (instanceId: string): IntegrationInstance | null => {
-    const config = storage.load();
-    return config?.instances[instanceId] || null;
+  loadInstance: <T extends IntegrationInstance>(instanceId: string): T => {
+      const config = storage.load();
+      if(!config) 
+        throw new Error("No integration config found");
+
+      return config.instances[instanceId] as T;
   },
 
   saveInstance: (instance: IntegrationInstance): boolean => {
