@@ -4,6 +4,8 @@ export const ItemSchema = z.object({
   id: z.string(),
   type: z.string(), // needs to be specified further
   title: z.string(),
+  repository: z.string(),
+  organization: z.string(),
   description: z.string().optional(),
   itemStatus: z.string(), // needs to be specified further maybe
   createdTimestamp: z.number(), // set on item creation
