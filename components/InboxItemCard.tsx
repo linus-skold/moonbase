@@ -16,34 +16,17 @@ import {
 import { MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-// Extended type for items with additional fields from the exchanges
-type InboxItemWithExtras = TypedItem & {
-  priority?: string;
-  workItemKind?: string;
-  assignedTo?: {
-    displayName: string;
-    uniqueName?: string;
-    imageUrl?: string;
-  };
-  project?: {
-    name: string;
-  };
-  repository?: {
-    name: string;
-  };
-  instance?: {
-    name: string;
-    instanceType: string;
-  };
-};
-
 interface InboxItemCardProps {
-  item: InboxItemWithExtras;
+  item: TypedItem;
   onMarkAsRead?: (itemId: string) => void;
   onMarkAsUnread?: (itemId: string) => void;
 }
 
-export function InboxItemCard({ item, onMarkAsRead, onMarkAsUnread }: InboxItemCardProps) {
+export function InboxItemCard({
+  item,
+  onMarkAsRead,
+  onMarkAsUnread,
+}: InboxItemCardProps) {
   const broker = useBroker();
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -90,18 +73,13 @@ export function InboxItemCard({ item, onMarkAsRead, onMarkAsUnread }: InboxItemC
         )}
 
         <div
-          className={`flex gap-3 flex-1 min-w-0 py-3 pr-3 ${
+          className={`flex gap-3 flex-1 min-w-0 py-3 pr-3  ${
             item.unread ? "" : "pl-4"
           }`}
         >
-          <ItemIcon
-            type={item.type}
-            priority={item.priority}
-            workItemKind={item.workItemKind}
-          />
-
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
+              <ItemIcon item={item} />
               <a
                 href={item.url}
                 target="_blank"
@@ -145,18 +123,22 @@ export function InboxItemCard({ item, onMarkAsRead, onMarkAsUnread }: InboxItemC
               </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>{DateTime.fromMillis(item.updateTimestamp??0).toRelative()}</span>
-              {item.assignedTo && (<ItemAssignment assignedTo={item.assignedTo} />)}
-            </div>
-
-            {item.status && (
-              <div className="mt-2">
-                <Badge className="bg-muted-green-300 font-semibold border-1 border-muted-green-border text-white">
-                  {item.status}
-                </Badge>
+            <div className="pl-6">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span>
+                  {DateTime.fromMillis(item.updateTimestamp ?? 0).toRelative()}
+                </span>
+                {item.assignee && <ItemAssignment assignedTo={item.assignee} />}
               </div>
-            )}
+
+              {item.status && (
+                <div className="mt-2">
+                  <Badge className="bg-muted-green-300 font-semibold border-1 border-muted-green-border text-white">
+                    {item.status}
+                  </Badge>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
