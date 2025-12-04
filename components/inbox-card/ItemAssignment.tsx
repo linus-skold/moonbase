@@ -1,11 +1,9 @@
 // components/inbox-card/ItemAssignment.tsx
+import { Assignee } from '@/lib/schema/assignee.schema';
 import React from 'react';
 
 interface ItemAssignmentProps {
-  assignedTo: {
-    displayName: string;
-    imageUrl?: string;
-  };
+  assignedTo: Assignee;
 }
 
 export function ItemAssignment({ assignedTo }: ItemAssignmentProps) {
