@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { AssigneeSchema } from "./assignee.schema";
+import { WorkItemKindSchema } from "./workItemKind.schema";
 
 export const ItemSchema = z.object({
   id: z.string(),
@@ -13,6 +15,7 @@ export const ItemSchema = z.object({
   prevUpdateTimestamp: z.number().nullable(), // previous update timestamp for change tracking
   unread: z.boolean().default(true),
   url: z.url(),
+  assignee: AssigneeSchema.optional(),
 });
 
 export const PullRequestSchema = ItemSchema.extend({
@@ -23,6 +26,7 @@ export const PullRequestSchema = ItemSchema.extend({
 export const WorkItemSchema = ItemSchema.extend({
   status: z.string(), // e.g. 'New', 'Active', 'Resolved', etc.
   type: z.literal("workItem"),
+  workItemKind: WorkItemKindSchema.optional(),
 });
 
 export const PipelineSchema = ItemSchema.extend({
