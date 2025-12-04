@@ -1,8 +1,15 @@
-import type { InboxItem } from "@/lib/schema/inbox.schema";
+import next from "next";
+import type { TypedItem } from "../schema/item.schema";
+import { Project } from "../schema/project.schema";
 
-export type SortOption = "title-asc" | "title-desc" | "date-asc" | "date-desc" | "source-asc" | "source-desc";
+export type SortOption =
+  | "title-asc"
+  | "title-desc"
+  | "date-asc"
+  | "date-desc"
+  | "source-asc"
+  | "source-desc";
 export type FilterOption = "all" | "pullRequest" | "workItem" | "pipeline";
-
 
 interface ParsedFilters {
   filters: Record<string, string[]>;
@@ -28,18 +35,17 @@ export function parseSearchQuery(searchQuery: string): ParsedFilters {
   return { filters, textQuery };
 }
 
-function getItemValueForFilter(item: InboxItem, filterType: string): string | undefined {
+function getItemValueForFilter(
+  item: TypedItem,
+  filterType: string
+): string | undefined {
   switch (filterType) {
     case "project":
-      return item.project?.name;
+      return item.repository;
     case "org":
-      return item.instance?.name;
-    case "repo":
-      return item.repository?.name;
+      return ""; // Placeholder, adjust with item property if available
     case "status":
       return item.status;
-    case "assignee":
-      return item.assignedTo?.displayName;
     case "type":
       return item.type;
     default:
@@ -48,9 +54,9 @@ function getItemValueForFilter(item: InboxItem, filterType: string): string | un
 }
 
 export function applyFilterSearch(
-  items: InboxItem[],
+  items: TypedItem[],
   filters: Record<string, string[]>
-): InboxItem[] {
+): TypedItem[] {
   if (Object.keys(filters).length === 0) {
     return items;
   }
@@ -64,7 +70,10 @@ export function applyFilterSearch(
   });
 }
 
-export function applyTextSearch(items: InboxItem[], textQuery: string): InboxItem[] {
+export function applyTextSearch(
+  items: TypedItem[],
+  textQuery: string
+): TypedItem[] {
   if (!textQuery.trim()) {
     return items;
   }
@@ -74,11 +83,14 @@ export function applyTextSearch(items: InboxItem[], textQuery: string): InboxIte
     (item) =>
       item.title?.toLowerCase().includes(query) ||
       item.description?.toLowerCase().includes(query) ||
-      item.repository?.name?.toLowerCase().includes(query)
+      item.repository?.toLowerCase().includes(query)
   );
 }
 
-export function applyTypeFilter(items: InboxItem[], filterBy: FilterOption): InboxItem[] {
+export function applyTypeFilter(
+  items: TypedItem[],
+  filterBy: FilterOption
+): TypedItem[] {
   if (filterBy === "all") {
     return items;
   }
@@ -86,67 +98,78 @@ export function applyTypeFilter(items: InboxItem[], filterBy: FilterOption): Inb
   return items.filter((item) => item.type === filterBy);
 }
 
-export function groupItemsByProject(items: InboxItem[]): Record<string, any> {
-  const grouped: Record<string, any> = {};
+export function groupItemsByProject(items: TypedItem[]) {
+  const grouped = items.reduce(
+    (prev: Record<string, Project>, next: TypedItem) => {
+      const projectKey = next.repository || "Unknown Project";
+      if (!prev[projectKey]) {
+        prev[projectKey] = {
+          project: next.repository,
+          organization: next.organization,
+          items: [],
+          latestUpdate: 0,
+          createdDate: 0,
+          url: "",
+          id: "",
+          name: "",
+          description: "",
+        };
+      }
 
-  items.forEach((item) => {
-    const projectKey = item.project?.name || "Unknown Project";
-    const itemTime = new Date(item.updatedDate || item.createdDate || 0).getTime();
-    
-    if (!grouped[projectKey]) {
-      grouped[projectKey] = {
-        project: item.project,
-        instance: item.instance,
-        items: [],
-        latestUpdate: itemTime,
-        oldestUpdate: itemTime,
-      };
-    } else {
-      if (itemTime > grouped[projectKey].latestUpdate) {
-        grouped[projectKey].latestUpdate = itemTime;
+      const groups = prev[projectKey];
+      groups.items.push(next);
+
+      if(next.updateTimestamp) {
+        const itemTime = new Date(next.updateTimestamp).getTime();
+        if (itemTime > groups.latestUpdate!) {
+          groups.latestUpdate = itemTime;
+        }
       }
-      if (itemTime < grouped[projectKey].oldestUpdate) {
-        grouped[projectKey].oldestUpdate = itemTime;
-      }
-    }
-    grouped[projectKey].items.push(item);
-  });
+
+      return prev;
+    },
+    {}
+  );
 
   return grouped;
 }
 
 export function sortGroupedProjects(
-  grouped: Record<string, any>,
+  grouped: Record<string, Project>,
   sortBy: SortOption
-): Record<string, any> {
+): Record<string, Project> {
   const entries = Object.entries(grouped);
 
   let sortedEntries: [string, any][];
 
   switch (sortBy) {
     case "title-asc":
-      sortedEntries = entries.sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+      sortedEntries = entries.sort(([keyA], [keyB]) =>
+        keyA.localeCompare(keyB)
+      );
       break;
     case "title-desc":
-      sortedEntries = entries.sort(([keyA], [keyB]) => keyB.localeCompare(keyA));
+      sortedEntries = entries.sort(([keyA], [keyB]) =>
+        keyB.localeCompare(keyA)
+      );
       break;
     case "date-desc":
       sortedEntries = entries.sort(
-        ([, a], [, b]) => b.latestUpdate - a.latestUpdate
+        ([, a], [, b]) => b.latestUpdate! - a.latestUpdate!
       );
       break;
     case "date-asc":
       sortedEntries = entries.sort(
-        ([, a], [, b]) => a.oldestUpdate - b.oldestUpdate
+        ([, a], [, b]) => a.createdDate! - b.createdDate!
       );
       break;
     case "source-asc":
-      sortedEntries = entries.sort(([, a], [, b]) => 
+      sortedEntries = entries.sort(([, a], [, b]) =>
         (a.instance?.name || "").localeCompare(b.instance?.name || "")
       );
       break;
     case "source-desc":
-      sortedEntries = entries.sort(([, a], [, b]) => 
+      sortedEntries = entries.sort(([, a], [, b]) =>
         (b.instance?.name || "").localeCompare(a.instance?.name || "")
       );
       break;
@@ -156,14 +179,22 @@ export function sortGroupedProjects(
 
   // Also sort items within each project
   sortedEntries.forEach(([, group]) => {
-    group.items.sort((a: InboxItem, b: InboxItem) => {
+    group.items.sort((a: TypedItem, b: TypedItem) => {
       if (sortBy === "date-desc") {
-        const aTime = new Date(a.updatedDate || a.createdDate || 0).getTime();
-        const bTime = new Date(b.updatedDate || b.createdDate || 0).getTime();
+        const aTime = new Date(
+          a.updateTimestamp || a.createdTimestamp || 0
+        ).getTime();
+        const bTime = new Date(
+          b.updateTimestamp || b.createdTimestamp || 0
+        ).getTime();
         return bTime - aTime;
       } else if (sortBy === "date-asc") {
-        const aTime = new Date(a.updatedDate || a.createdDate || 0).getTime();
-        const bTime = new Date(b.updatedDate || b.createdDate || 0).getTime();
+        const aTime = new Date(
+          a.updateTimestamp || a.createdTimestamp || 0
+        ).getTime();
+        const bTime = new Date(
+          b.updateTimestamp || b.createdTimestamp || 0
+        ).getTime();
         return aTime - bTime;
       } else if (sortBy === "title-asc") {
         return (a.title || "").localeCompare(b.title || "");
@@ -182,8 +213,8 @@ export function sortGroupedProjects(
   return sortedGrouped;
 }
 
-export function processInboxItems(
-  items: InboxItem[],
+export function processTypedItems(
+  items: TypedItem[],
   searchQuery: string,
   filterBy: FilterOption,
   sortBy: SortOption

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TypedItemSchema } from "./item.schema";
 
 
 export const ProjectSchema = z.object({
@@ -6,6 +7,12 @@ export const ProjectSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   url: z.url(),
-  createdDate: z.string().optional(),
+  items: TypedItemSchema.array().default([]),
+  project: z.string().optional(),
+  organization: z.string().optional(),
+  latestUpdate: z.number().optional(),
+  createdDate: z.number().optional(),
 });
+
+export type Project = z.infer<typeof ProjectSchema>;
 

@@ -46,7 +46,7 @@ import type {
   SearchSuggestion,
   SuggestionType,
 } from "@/lib/schema/suggestion.schema";
-import { processInboxItems } from "@/lib/utils/inbox-filters";
+import { processTypedItems } from "@/lib/utils/inbox-filters";
 import type { SortOption, FilterOption } from "@/lib/utils/inbox-filters";
 import { use } from "react";
 
@@ -200,7 +200,7 @@ export default function Page({ params }: PageProps) {
 
   // Process inbox items for this specific instance: filter, sort, and group
   const groupedFilteredItems = useMemo(() => {
-    return processInboxItems(items, searchQuery, filterBy, sortBy);
+    return processTypedItems(items, searchQuery, filterBy, sortBy);
   }, [items, searchQuery, filterBy, sortBy]);
 
   const onRefreshStart = async () => {
@@ -479,10 +479,7 @@ export default function Page({ params }: PageProps) {
                 return (
                   <ProjectCardComponent
                     key={projectKey}
-                    group={{
-                      projectName: projectKey,
-                      instanceName: group.instance?.name || "Unknown",
-                    }}
+                    group={group}
                     instanceType={group.instance?.instanceType}
                     onMarkAllAsRead={() => handleMarkAllAsRead(itemIds)}
                     onMarkAllAsUnread={() => handleMarkAllAsUnread(itemIds)}
