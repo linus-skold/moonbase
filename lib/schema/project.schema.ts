@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TypedItemSchema } from "./item.schema";
+import { IntegrationInstanceSchema } from "./config.schema";
 
 
 export const ProjectSchema = z.object({
@@ -12,6 +13,7 @@ export const ProjectSchema = z.object({
   organization: z.string().optional(),
   latestUpdate: z.number().optional(),
   createdDate: z.number().optional(),
+  instance: IntegrationInstanceSchema.optional(),
 });
 
 export type Project = z.infer<typeof ProjectSchema>;
