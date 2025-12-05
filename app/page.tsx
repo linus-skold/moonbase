@@ -47,6 +47,7 @@ import type {
 } from "@/lib/schema/suggestion.schema";
 import { processTypedItems } from "@/lib/utils/inbox-filters";
 import type { SortOption, FilterOption } from "@/lib/utils/inbox-filters";
+import { TypedItem } from "@/lib/schema/item.schema";
 
 export default function Page() {
   const broker = useBroker();
@@ -158,23 +159,23 @@ export default function Page() {
         setProgressTotal(exchanges.length);
         setProgressCurrent(0);
         
-        const results: any[] = [];
+        const results: TypedItem[] = [];
         
         for (let i = 0; i < exchanges.length; i++) {
           const exchange = exchanges[i];
           setProgressLabel(`Fetching from ${exchange.name}...`);
           
           const result = await exchange.fetchItems({ forceRefresh: false });
-          results.push([
+          results.push(
             ...result.workItems,
             ...result.pullRequests,
-            ...result.pipelines,
-          ]);
+            ...result.pipelines
+          );
           
           setProgressCurrent(i + 1);
         }
         
-        const allItems = results.flat();
+        const allItems = results;
         const hadItems = items.length > 0;
         const itemCountChanged = hadItems && allItems.length !== items.length;
         
@@ -222,8 +223,8 @@ export default function Page() {
 
   // Process inbox items for this specific instance: filter, sort, and group
   const groupedFilteredItems = useMemo(() => {
-    return processTypedItems(items, searchQuery, filterBy, sortBy);
-  }, [items, searchQuery, filterBy, sortBy]);
+    return processTypedItems(items, searchQuery, filterBy, sortBy, broker);
+  }, [items, searchQuery, filterBy, sortBy, broker]);
 
   const onRefreshStart = async () => {
     setRefreshing(true);
@@ -235,23 +236,22 @@ export default function Page() {
       setProgressTotal(exchanges.length);
       setProgressCurrent(0);
       
-      const results: any[] = [];
-      
+      const results: TypedItem[] = [];
       for (let i = 0; i < exchanges.length; i++) {
         const exchange = exchanges[i];
         setProgressLabel(`Refreshing ${exchange.name}...`);
         
         const result = await exchange.fetchItems({ forceRefresh: true });
-        results.push([
+        results.push(
           ...result.workItems,
           ...result.pullRequests,
-          ...result.pipelines,
-        ]);
+          ...result.pipelines
+        );
         
         setProgressCurrent(i + 1);
       }
       
-      const allItems = results.flat();
+      const allItems = results;
       setItems(allItems);
       setLastUpdated(new Date());
     } catch (error) {

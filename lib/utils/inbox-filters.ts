@@ -1,6 +1,7 @@
 import next from "next";
 import type { TypedItem } from "../schema/item.schema";
 import { Project } from "../schema/project.schema";
+import { InboxBroker } from "../broker";
 
 export type SortOption =
   | "title-asc"
@@ -102,9 +103,10 @@ export function applyTypeFilter(
   return items.filter((item) => item.type === filterBy);
 }
 
-export function groupItemsByProject(items: TypedItem[]) {
+export function groupItemsByProject(items: TypedItem[], broker: InboxBroker) {
   const grouped = items.reduce(
     (prev: Record<string, Project>, next: TypedItem) => {
+      const inst = broker.getInstance(next.instanceId);
       const projectKey = next.project || "Unknown Project";
       if (!prev[projectKey]) {
         prev[projectKey] = {
@@ -117,6 +119,7 @@ export function groupItemsByProject(items: TypedItem[]) {
           id: "",
           name: "",
           description: "",
+          instance: inst ?? undefined  
         };
       }
 
@@ -209,7 +212,7 @@ export function sortGroupedProjects(
     });
   });
 
-  const sortedGrouped: Record<string, any> = {};
+  const sortedGrouped: Record<string, Project> = {};
   sortedEntries.forEach(([key, value]) => {
     sortedGrouped[key] = value;
   });
@@ -221,8 +224,9 @@ export function processTypedItems(
   items: TypedItem[],
   searchQuery: string,
   filterBy: FilterOption,
-  sortBy: SortOption
-): Record<string, any> {
+  sortBy: SortOption,
+  broker: InboxBroker
+): Record<string, Project> {
   const { filters, textQuery } = parseSearchQuery(searchQuery);
 
   let filteredItems = items;
@@ -230,7 +234,7 @@ export function processTypedItems(
   filteredItems = applyTextSearch(filteredItems, textQuery);
   filteredItems = applyTypeFilter(filteredItems, filterBy);
 
-  const grouped = groupItemsByProject(filteredItems);
+  const grouped = groupItemsByProject(filteredItems, broker);
 
   return sortGroupedProjects(grouped, sortBy);
 }
