@@ -37,6 +37,7 @@ export function transformToPullRequest(
     organization: instance.name, // Integration instance name
     repository: pr.repository.name,
     project: pr.repository.project.name, // ADO project name for grouping
+    instanceId: instance.id,
   };
 }
 
@@ -86,6 +87,7 @@ export function transformToWorkItem(
           imageUrl: workItem.fields["System.AssignedTo"].imageUrl || "",
         }
       : undefined,
+    instanceId: instance.id,
   };
 }
 
@@ -130,5 +132,6 @@ export function transformToPipeline(
     organization: instance.name, // Integration instance name
     repository: projectName, // No specific repo for pipelines
     project: projectName, // ADO project name for grouping
+    instanceId: instance.id,
   };
 }
