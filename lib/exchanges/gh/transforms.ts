@@ -42,6 +42,7 @@ export function transformToPullRequest(
     organization: instance.name || "GitHub",
     repository,
     project: repository, // For GitHub, project and repository are the same
+    instanceId: instance.id,
   };
 }
 
@@ -76,5 +77,6 @@ export function transformToWorkItem(
     project: repository, // For GitHub, project and repository are the same
     organization: instance.name || "GitHub",
     workItemKind: classifier.classify({ typeName: "workItem", title: item.title, labels: [] }).kind,
+    instanceId: instance.id,
   };
 }
