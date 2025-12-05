@@ -17,6 +17,7 @@ export const ItemSchema = z.object({
   unread: z.boolean().default(true),
   url: z.url(),
   assignee: AssigneeSchema.optional(),
+  instanceId: z.string(),
 });
 
 export const PullRequestSchema = ItemSchema.extend({
