@@ -223,6 +223,7 @@ export default function Page() {
 
   // Process inbox items for this specific instance: filter, sort, and group
   const groupedFilteredItems = useMemo(() => {
+    if(!broker || !('exchanges' in broker)) return {};
     return processTypedItems(items, searchQuery, filterBy, sortBy, broker);
   }, [items, searchQuery, filterBy, sortBy, broker]);
 

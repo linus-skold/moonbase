@@ -15,6 +15,8 @@ export function useBroker() {
   if (!context) {
     // Return a no-op broker for SSR
     return {
+      markAsRead: (itemId: string) => {},
+      markAsUnread: (itemId: string) => {},
       getInstances: () => [],
       getInstance: () => null,
       fetchAllItems: async () => [],
