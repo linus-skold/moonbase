@@ -10,6 +10,10 @@ import type {
 import type { IntegrationInstance } from "@/lib/schema/config.schema";
 import type { IntegrationExchange } from "@/lib/exchanges/integration-exchange";
 
+import { updateItemUnreadState } from "@/lib/utils/unread-storage";
+
+
+
 export class InboxBroker {
   private exchanges: Map<string, IntegrationExchange> = new Map();
 
@@ -225,7 +229,6 @@ export class InboxBroker {
       
       if (found && typeof window !== 'undefined') {
         // Persist to localStorage
-        const { updateItemUnreadState } = require('@/lib/utils/unread-storage');
         updateItemUnreadState(exchange.id, itemId, false);
       }
     });
@@ -253,7 +256,6 @@ export class InboxBroker {
       
       if (found && typeof window !== 'undefined') {
         // Persist to localStorage
-        const { updateItemUnreadState } = require('@/lib/utils/unread-storage');
         updateItemUnreadState(exchange.id, itemId, true);
       }
     });
