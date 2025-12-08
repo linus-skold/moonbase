@@ -70,6 +70,11 @@ export default function Page({ params }: PageProps) {
   const [lastUpdated, setLastUpdated] = useState<Date | string>("-");
   const [, forceUpdate] = useState(0);
   
+  // Progress tracking
+  const [progressCurrent, setProgressCurrent] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("Loading items...");
+  
   // New items notification
   const [showNewItemsNotification, setShowNewItemsNotification] = useState(false);
 
@@ -139,40 +144,81 @@ export default function Page({ params }: PageProps) {
     if (!slug) return;
     
     const exchange = broker.getExchange(slug);
-    if (exchange) {
-      // Load cached data immediately
-      const cachedItems = [
-        ...exchange.getWorkItems(),
-        ...exchange.getPullRequests(),
-        ...exchange.getPipelines(),
-      ];
-      
-      if (cachedItems.length > 0) {
-        setItems(cachedItems);
-        setLoading(false);
-      } else {
-        // Only fetch if no cached data
-        const fetchFreshData = async () => {
-          setLoading(true);
-          try {
-            const result = await exchange.fetchItems({ forceRefresh: false });
-            const fetchedItems = [
-              ...result.workItems,
-              ...result.pullRequests,
-              ...result.pipelines,
-            ];
-            setItems(fetchedItems);
-            setLastUpdated(new Date());
-          } catch (error) {
-            console.error('Failed to fetch items:', error);
-          } finally {
-            setLoading(false);
-          }
-        };
-        
-        fetchFreshData();
-      }
+    if (!exchange) return;
+    
+    // Load cached data immediately
+    const cachedItems = [
+      ...exchange.getWorkItems(),
+      ...exchange.getPullRequests(),
+      ...exchange.getPipelines(),
+    ];
+    
+    // Always show cached data immediately
+    setItems(cachedItems);
+    if (cachedItems.length > 0) {
+      setLoading(false);
+      setLastUpdated(new Date());
     }
+  }, [slug, broker]);
+  
+  // Fetch fresh data in background on mount
+  useEffect(() => {
+    if (!slug) return;
+    
+    const fetchFreshData = async () => {
+      try {
+        const exchange = broker.getExchange(slug);
+        if (!exchange) {
+          setLoading(false);
+          return;
+        }
+
+        // Track the current items before fetching
+        const itemsBeforeFetch = [...items];
+        
+        setProgressTotal(1);
+        setProgressCurrent(0);
+        setProgressLabel(`Fetching from ${exchange.name}...`);
+        
+        const result = await exchange.fetchItems({ forceRefresh: false });
+        const allItems = [
+          ...result.workItems,
+          ...result.pullRequests,
+          ...result.pipelines,
+        ];
+        
+        setProgressCurrent(1);
+        setItems(allItems);
+        setLastUpdated(new Date());
+        
+        // Check if there are new or updated items
+        const hadItems = itemsBeforeFetch.length > 0;
+        if (hadItems) {
+          const oldItemsMap = new Map(itemsBeforeFetch.map(item => [item.id, item]));
+          let hasNewOrUpdated = false;
+          
+          for (const newItem of allItems) {
+            const oldItem = oldItemsMap.get(newItem.id);
+            if (!oldItem || newItem.updateTimestamp > oldItem.updateTimestamp) {
+              hasNewOrUpdated = true;
+              break;
+            }
+          }
+          
+          if (hasNewOrUpdated) {
+            setShowNewItemsNotification(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch items:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Small delay to let cached data show first
+    const timer = setTimeout(fetchFreshData, 100);
+    return () => clearTimeout(timer);
   }, [slug, broker]);
 
   useEffect(() => {
@@ -206,18 +252,25 @@ export default function Page({ params }: PageProps) {
   const onRefreshStart = async () => {
     setRefreshing(true);
     setShowNewItemsNotification(false);
+    
     try {
       const exchange = broker.getExchange(slug);
-      if (exchange) {
-        const result = await exchange.fetchItems({ forceRefresh: true });
-        const fetchedItems = [
-          ...result.workItems,
-          ...result.pullRequests,
-          ...result.pipelines,
-        ];
-        setItems(fetchedItems);
-        setLastUpdated(new Date());
-      }
+      if (!exchange) return;
+      
+      setProgressTotal(1);
+      setProgressCurrent(0);
+      setProgressLabel(`Refreshing ${exchange.name}...`);
+      
+      const result = await exchange.fetchItems({ forceRefresh: true });
+      const fetchedItems = [
+        ...result.workItems,
+        ...result.pullRequests,
+        ...result.pipelines,
+      ];
+      
+      setProgressCurrent(1);
+      setItems(fetchedItems);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to refresh:", error);
     } finally {
@@ -231,14 +284,20 @@ export default function Page({ params }: PageProps) {
     
     const pollInterval = 5 * 60 * 1000; // 5 minutes
     
-    const pollForUpdates = async () => {
-      if (document.hidden) return; // Don't poll if page is hidden
+    const pollForUpdates = async (isManual: boolean = false) => {
+      // Don't poll if page is hidden or still loading (unless manual trigger)
+      if (!isManual && (document.hidden || loading)) return;
+      
+      console.log(`[Polling ${slug}] Starting ${isManual ? 'manual' : 'background'} poll check...`);
       
       try {
         const exchange = broker.getExchange(slug);
         if (!exchange) return;
+
+        // Store snapshot of current items before polling
+        const currentItemsSnapshot = [...items];
         
-        const result = await exchange.fetchItems({ forceRefresh: true });
+        const result = await exchange.fetchItems({ forceRefresh: false });
         const allItems = [
           ...result.workItems,
           ...result.pullRequests,
@@ -246,36 +305,81 @@ export default function Page({ params }: PageProps) {
         ];
         
         // Create a map of current items by ID for quick lookup
-        const currentItemsMap = new Map(items.map(item => [item.id, item]));
+        const currentItemsMap = new Map(currentItemsSnapshot.map(item => [item.id, item]));
         
         // Check for new items or updated items
-        let hasUpdates = false;
+        let hasNewItems = false;
+        let hasUpdatedItems = false;
+        const newItemIds: string[] = [];
+        const updatedItemIds: string[] = [];
         
-        // Check if we have new items
-        if (allItems.length > items.length) {
-          hasUpdates = true;
-        } else {
-          // Check if any existing items have been updated
-          for (const newItem of allItems) {
-            const currentItem = currentItemsMap.get(newItem.id);
-            if (currentItem && newItem.updateTimestamp > currentItem.updateTimestamp) {
-              hasUpdates = true;
-              break;
-            }
+        for (const newItem of allItems) {
+          const currentItem = currentItemsMap.get(newItem.id);
+          
+          if (!currentItem) {
+            // This is a new item
+            hasNewItems = true;
+            newItemIds.push(newItem.id);
+          } else if (newItem.updateTimestamp > currentItem.updateTimestamp) {
+            // This item has been updated
+            hasUpdatedItems = true;
+            updatedItemIds.push(newItem.id);
+            console.log(`[Polling ${slug}] Item updated:`, {
+              id: newItem.id,
+              title: newItem.title,
+              oldTimestamp: new Date(currentItem.updateTimestamp).toISOString(),
+              newTimestamp: new Date(newItem.updateTimestamp).toISOString(),
+            });
           }
         }
         
-        if (hasUpdates) {
+        console.log(`[Polling ${slug}] Check complete:`, {
+          hasNewItems,
+          hasUpdatedItems,
+          newCount: newItemIds.length,
+          updatedCount: updatedItemIds.length,
+        });
+        
+        if (hasNewItems || hasUpdatedItems) {
+          console.log(`[Polling ${slug}] Changes detected, showing notification`);
           setShowNewItemsNotification(true);
+          // Don't automatically update items - let user decide when to refresh
+        } else if (isManual) {
+          // If manually triggered and no changes, show a toast
+          const { toast } = await import('sonner');
+          toast.success("No new items or updates found");
         }
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error(`[Polling ${slug}] Error:`, error);
+        if (isManual) {
+          const { toast } = await import('sonner');
+          toast.error("Polling check failed");
+        }
       }
     };
     
-    const interval = setInterval(pollForUpdates, pollInterval);
-    return () => clearInterval(interval);
-  }, [broker, slug, items]);
+    // Listen for manual polling trigger
+    const handleManualPoll = () => {
+      pollForUpdates(true);
+    };
+    
+    window.addEventListener('trigger-manual-poll', handleManualPoll);
+    
+    // Start polling after initial load completes
+    if (!loading) {
+      console.log(`[Polling ${slug}] Starting polling interval (every 5 minutes)`);
+      const interval = setInterval(() => pollForUpdates(false), pollInterval);
+      return () => {
+        console.log(`[Polling ${slug}] Stopping polling interval`);
+        clearInterval(interval);
+        window.removeEventListener('trigger-manual-poll', handleManualPoll);
+      };
+    }
+    
+    return () => {
+      window.removeEventListener('trigger-manual-poll', handleManualPoll);
+    };
+  }, [broker, slug, items, loading]);
   
   const handleNotificationAction = (refresh: boolean) => {
     setShowNewItemsNotification(false);
@@ -448,12 +552,12 @@ export default function Page({ params }: PageProps) {
               </DropdownMenu>
             </div>
           </InboxRow>
-          {(refreshing || loading) && (
+          {(refreshing || loading) && progressTotal > 0 && (
             <InboxRow className="flex-col">
               <ProgressContainer 
-                current={0} 
-                total={1}
-                label="Loading items..."
+                current={progressCurrent} 
+                total={progressTotal}
+                label={progressLabel}
               />
             </InboxRow>
           )}
