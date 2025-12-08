@@ -10,7 +10,7 @@ import type {
 import type { IntegrationInstance } from "@/lib/schema/config.schema";
 import type { IntegrationExchange } from "@/lib/exchanges/integration-exchange";
 
-import { updateItemUnreadState } from "@/lib/utils/unread-storage";
+import { loadItems, saveItems } from "@/lib/utils/item-storage";
 
 
 
@@ -228,8 +228,12 @@ export class InboxBroker {
                     updateUnreadState(exchange.getPipelines());
       
       if (found && typeof window !== 'undefined') {
-        // Persist to localStorage
-        updateItemUnreadState(exchange.id, itemId, false);
+        // Persist entire item cache to localStorage
+        saveItems(exchange.id, {
+          workItems: exchange.getWorkItems(),
+          pullRequests: exchange.getPullRequests(),
+          pipelines: exchange.getPipelines(),
+        });
       }
     });
   }
@@ -255,8 +259,12 @@ export class InboxBroker {
                     updateUnreadState(exchange.getPipelines());
       
       if (found && typeof window !== 'undefined') {
-        // Persist to localStorage
-        updateItemUnreadState(exchange.id, itemId, true);
+        // Persist entire item cache to localStorage
+        saveItems(exchange.id, {
+          workItems: exchange.getWorkItems(),
+          pullRequests: exchange.getPullRequests(),
+          pipelines: exchange.getPipelines(),
+        });
       }
     });
   }
