@@ -28,7 +28,7 @@ export function transformToPullRequest(
   const repository = parseRepositoryName(item.repository_url);
   
   return {
-    id: `gh-pr-${instance.id}-${crypto.randomUUID()}`,
+    id: `gh-pr-${instance.id}-${item.id}`,
     type: "pullRequest",
     title: item.title,
     description: item.body ?? "",
@@ -62,7 +62,7 @@ export function transformToWorkItem(
   const repository = parseRepositoryName(item.repository_url);
   
   return {
-    id: `gh-issue-${instance.id}-${crypto.randomUUID()}`,
+    id: `gh-issue-${instance.id}-${item.id}`,
     type: "workItem",
     title: item.title,
     description: item.body ?? "",
