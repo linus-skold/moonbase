@@ -1,6 +1,6 @@
 import { IntegrationExchange } from "@/lib/exchanges/integration-exchange";
 import { integrationStorage } from "@/lib/utils/integration-storage";
-import { loadUnreadState, saveUnreadState } from "@/lib/utils/unread-storage";
+import { loadItems, saveItems, mergeItemsWithChangeDetection } from "@/lib/utils/item-storage";
 import type { WorkItem, PullRequest, Pipeline } from "@/lib/schema/item.schema";
 
 export const createExchange = (instanceId: string): IntegrationExchange => {
@@ -10,33 +10,19 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
     throw new Error(`ADO instance ${instanceId} not found`);
   }
 
-  // Local cache
-  let cachedWorkItems: WorkItem[] = [];
-  let cachedPullRequests: PullRequest[] = [];
-  let cachedPipelines: Pipeline[] = [];
+  // Local cache - initialize from localStorage if available
+  const storedItems = loadItems(instanceId);
+  let cachedWorkItems: WorkItem[] = storedItems?.workItems || [];
+  let cachedPullRequests: PullRequest[] = storedItems?.pullRequests || [];
+  let cachedPipelines: Pipeline[] = storedItems?.pipelines || [];
 
-  // Helper to merge unread state from localStorage
-  const mergeUnreadState = <T extends { id: string; unread: boolean }>(newItems: T[]): T[] => {
-    const unreadState = loadUnreadState(instanceId);
-    
-    return newItems.map(newItem => {
-      // Check localStorage first for persisted state
-      if (newItem.id in unreadState) {
-        return { ...newItem, unread: unreadState[newItem.id] } as T;
-      }
-      // New item - mark as unread by default
-      return newItem;
+  // Helper to save items to localStorage
+  const persistItems = () => {
+    saveItems(instanceId, {
+      workItems: cachedWorkItems,
+      pullRequests: cachedPullRequests,
+      pipelines: cachedPipelines,
     });
-  };
-
-  // Helper to save current unread state
-  const persistUnreadState = () => {
-    const allItems = [...cachedWorkItems, ...cachedPullRequests, ...cachedPipelines];
-    const state: Record<string, boolean> = {};
-    allItems.forEach(item => {
-      state[item.id] = item.unread;
-    });
-    saveUnreadState(instanceId, state);
   };
 
   return {
@@ -94,13 +80,17 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
 
         const data = await response.json();
         
-        // Merge unread state from localStorage
-        cachedWorkItems = mergeUnreadState<WorkItem>(data.workItems || []);
-        cachedPullRequests = mergeUnreadState<PullRequest>(data.pullRequests || []);
-        cachedPipelines = mergeUnreadState<Pipeline>(data.pipelines || []);
+        // Merge with cached items, detecting changes
+        const workItemsMerge = mergeItemsWithChangeDetection(cachedWorkItems, data.workItems || []);
+        const pullRequestsMerge = mergeItemsWithChangeDetection(cachedPullRequests, data.pullRequests || []);
+        const pipelinesMerge = mergeItemsWithChangeDetection(cachedPipelines, data.pipelines || []);
         
-        // Persist unread state
-        persistUnreadState();
+        cachedWorkItems = workItemsMerge.items;
+        cachedPullRequests = pullRequestsMerge.items;
+        cachedPipelines = pipelinesMerge.items;
+        
+        // Persist items to localStorage
+        persistItems();
 
         // Report progress if callback provided
         if (options?.onProgress) {

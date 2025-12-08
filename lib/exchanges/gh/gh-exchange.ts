@@ -1,6 +1,6 @@
 import { IntegrationExchange } from "@/lib/exchanges/integration-exchange";
 import { integrationStorage } from "@/lib/utils/integration-storage";
-import { loadUnreadState, saveUnreadState } from "@/lib/utils/unread-storage";
+import { loadItems, saveItems, mergeItemsWithChangeDetection } from "@/lib/utils/item-storage";
 import type { WorkItem, PullRequest, Pipeline } from "@/lib/schema/item.schema";
 import { GhClient } from "./client";
 import { GhIntegrationInstance } from "./schema/config.schema";
@@ -13,33 +13,19 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
 
   const client = new GhClient(instanceConfig);
 
-  // Local cache
-  let cachedWorkItems: WorkItem[] = [];
-  let cachedPullRequests: PullRequest[] = [];
-  let cachedPipelines: Pipeline[] = [];
+  // Local cache - initialize from localStorage if available
+  const storedItems = loadItems(instanceId);
+  let cachedWorkItems: WorkItem[] = storedItems?.workItems || [];
+  let cachedPullRequests: PullRequest[] = storedItems?.pullRequests || [];
+  let cachedPipelines: Pipeline[] = storedItems?.pipelines || [];
 
-  // Helper to merge unread state from localStorage
-  const mergeUnreadState = <T extends { id: string; unread: boolean }>(newItems: T[]): T[] => {
-    const unreadState = loadUnreadState(instanceId);
-    
-    return newItems.map(newItem => {
-      // Check localStorage first for persisted state
-      if (newItem.id in unreadState) {
-        return { ...newItem, unread: unreadState[newItem.id] };
-      }
-      // New item - mark as unread by default
-      return { ...newItem, unread: true };
+  // Helper to save items to localStorage
+  const persistItems = () => {
+    saveItems(instanceId, {
+      workItems: cachedWorkItems,
+      pullRequests: cachedPullRequests,
+      pipelines: cachedPipelines,
     });
-  };
-
-  // Helper to save current unread state
-  const persistUnreadState = () => {
-    const allItems = [...cachedWorkItems, ...cachedPullRequests, ...cachedPipelines];
-    const state: Record<string, boolean> = {};
-    allItems.forEach(item => {
-      state[item.id] = item.unread;
-    });
-    saveUnreadState(instanceId, state);
   };
 
 
@@ -88,16 +74,29 @@ export const createExchange = (instanceId: string): IntegrationExchange => {
         const pullRequestsAssigned = prAssignedResults.map(item => transformToPullRequest(item, instanceConfig));
         const pullRequestsCreated = prCreatedResults.map(item => transformToPullRequest(item, instanceConfig));
         
-        // Combine all PRs (assigned and created)
-        const allPullRequests = [...pullRequestsAssigned, ...pullRequestsCreated];
+        // Combine all PRs (assigned and created) and deduplicate by ID
+        const allPullRequestsMap = new Map<string, PullRequest>();
+        [...pullRequestsAssigned, ...pullRequestsCreated].forEach(pr => {
+          allPullRequestsMap.set(pr.id, pr);
+        });
+        const allPullRequests = Array.from(allPullRequestsMap.values());
   
-        // Merge unread state from localStorage
-        cachedWorkItems = mergeUnreadState(workItems);
-        cachedPullRequests = mergeUnreadState(allPullRequests);
-        cachedPipelines = mergeUnreadState([]);
+        // Merge with cached items, detecting changes
+        const workItemsMerge = mergeItemsWithChangeDetection(cachedWorkItems, workItems);
+        const pullRequestsMerge = mergeItemsWithChangeDetection(cachedPullRequests, allPullRequests);
+        const pipelinesMerge = mergeItemsWithChangeDetection(cachedPipelines, []);
         
-        // Persist unread state
-        persistUnreadState();
+        console.log(`[GitHub ${instanceConfig.name}] Merge results:`, {
+          workItems: { new: workItemsMerge.newCount, updated: workItemsMerge.updatedCount, total: workItemsMerge.items.length },
+          pullRequests: { new: pullRequestsMerge.newCount, updated: pullRequestsMerge.updatedCount, total: pullRequestsMerge.items.length },
+        });
+        
+        cachedWorkItems = workItemsMerge.items;
+        cachedPullRequests = pullRequestsMerge.items;
+        cachedPipelines = pipelinesMerge.items;
+        
+        // Persist items to localStorage
+        persistItems();
 
         return {
           workItems: cachedWorkItems,
