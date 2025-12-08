@@ -100,16 +100,9 @@ export function AppSidebar(props?: AppSidebarProps) {
     return instances.filter(i => i.instanceType === 'gh');
   }, [instances]);
 
-  const handleTriggerPolling = async () => {
-    try {
-      toast.info("Triggering polling...");
-      await broker.fetchAllItems();
-      window.dispatchEvent(new CustomEvent('inbox-items-updated'));
-      toast.success("Polling completed successfully");
-    } catch (error) {
-      console.error("Error during polling:", error);
-      toast.error("Failed to complete polling");
-    }
+  const handleTriggerPolling = () => {
+    toast.info("Triggering polling check...");
+    window.dispatchEvent(new CustomEvent('trigger-manual-poll'));
   };
 
   const handleClearUnreadState = () => {
