@@ -234,20 +234,31 @@ export default function Page({ params }: PageProps) {
         forceUpdate((n) => n + 1);
       }
     };
+    
+    const handleConfigUpdate = ((event: CustomEvent) => {
+      const { instanceId } = event.detail;
+      // Only refresh if this is the instance we're viewing
+      if (instanceId === slug) {
+        console.log(`[Inbox ${slug}] Config updated, triggering refresh...`);
+        onRefreshStart();
+      }
+    }) as EventListener;
 
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener('inbox-config-updated', handleConfigUpdate);
 
     return () => {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener('inbox-config-updated', handleConfigUpdate);
     };
-  }, []);
+  }, [slug]);
 
   // Process inbox items for this specific instance: filter, sort, and group
   const groupedFilteredItems = useMemo(() => {
-    return processTypedItems(items, searchQuery, filterBy, sortBy);
-  }, [items, searchQuery, filterBy, sortBy]);
+    return processTypedItems(items, searchQuery, filterBy, sortBy, broker);
+  }, [items, searchQuery, filterBy, sortBy, broker]);
 
   const onRefreshStart = async () => {
     setRefreshing(true);
