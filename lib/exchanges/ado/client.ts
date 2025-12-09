@@ -164,52 +164,34 @@ export class AdoClient {
     }
 
     // Fetch PRs from projects in parallel (10 concurrent requests)
+    // Query at project level instead of iterating through repos for better performance
     const prBatches = await this.processConcurrently(
       projects,
       async (project) => {
         try {
-          const repos = await gitApi.getRepositories(project.id);
+          // Fetch both reviewer PRs and created PRs at the project level
+          const [reviewerPrs, creatorPrs] = await Promise.all([
+            gitApi
+              .getPullRequestsByProject(project.id, reviewerCriteria)
+              .catch(() => []),
+            gitApi
+              .getPullRequestsByProject(project.id, creatorCriteria)
+              .catch(() => []),
+          ]);
 
-          // Fetch PRs from all repos in this project in parallel
-          const projectPrBatches = await this.processConcurrently(
-            repos,
-            async (repo) => {
-              try {
-                // Fetch both reviewer PRs and created PRs in parallel
-                const [reviewerPrs, creatorPrs] = await Promise.all([
-                  gitApi
-                    .getPullRequests(repo.id!, reviewerCriteria, project.id)
-                    .catch(() => []),
-                  gitApi
-                    .getPullRequests(repo.id!, creatorCriteria, project.id)
-                    .catch(() => []),
-                ]);
-
-                // Combine and deduplicate by PR ID
-                const allPrs = [
-                  ...(reviewerPrs || []),
-                  ...(creatorPrs || []),
-                ];
-                const uniquePrs = Array.from(
-                  new Map(allPrs.map((pr) => [pr.pullRequestId, pr])).values()
-                );
-
-                return uniquePrs;
-              } catch (error) {
-                console.error(
-                  `Error fetching PRs for repo ${repo.name} in project ${project.name}:`,
-                  error
-                );
-                return [];
-              }
-            },
-            5 // Process 5 repos per project concurrently
+          // Combine and deduplicate by PR ID
+          const allPrs = [
+            ...(reviewerPrs || []),
+            ...(creatorPrs || []),
+          ];
+          const uniquePrs = Array.from(
+            new Map(allPrs.map((pr) => [pr.pullRequestId, pr])).values()
           );
 
-          return projectPrBatches.flat();
+          return uniquePrs;
         } catch (error) {
           console.error(
-            `Error fetching repos for project ${project.name}:`,
+            `Error fetching PRs for project ${project.name}:`,
             error
           );
           return [];
