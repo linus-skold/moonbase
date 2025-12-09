@@ -27,6 +27,7 @@ import { DatePicker } from "@/components/datepicker/DatePicker";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import InboxCache from "@/lib/utils/inbox-cache";
+import { clearItems } from "@/lib/utils/item-storage";
 import { fetchAuthenticatedUserId } from "@/lib/exchanges/ado/api";
 import { RefreshCw } from "lucide-react";
 
@@ -105,8 +106,9 @@ export default function Page() {
       integrationStorage.saveInstance(processedInstance);
       setHasChanges(false);
       
-      // Clear the cache for this instance to force a fresh fetch with new settings
+      // Clear both old and new cache systems for this instance
       InboxCache.clearCachedItems('ado', instanceId);
+      clearItems(instanceId);
             
       // Trigger a refresh event so the inbox will reload with new filters
       if (typeof window !== 'undefined') {
@@ -115,7 +117,7 @@ export default function Page() {
         }));
       }
       
-      toast.success("Instance saved successfully. Cache and read status cleared - refresh your inbox to apply changes.");
+      toast.success("Instance saved successfully. Cache cleared - refresh your inbox to apply changes.");
     } catch (error) {
       console.error('Failed to save instance:', error);
       toast.error("Failed to save instance");

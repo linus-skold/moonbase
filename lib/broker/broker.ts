@@ -19,6 +19,17 @@ export class InboxBroker {
 
   constructor() {
     // Don't create exchanges in constructor - they'll be created lazily
+    
+    // Listen for config updates and invalidate affected exchanges
+    if (typeof window !== 'undefined') {
+      window.addEventListener('inbox-config-updated', ((event: CustomEvent) => {
+        const { instanceId } = event.detail;
+        if (instanceId && this.exchanges.has(instanceId)) {
+          console.log(`[Broker] Invalidating exchange for ${instanceId} due to config update`);
+          this.exchanges.delete(instanceId);
+        }
+      }) as EventListener);
+    }
   }
 
   /**

@@ -232,13 +232,20 @@ export default function Page() {
         forceUpdate((n) => n + 1);
       }
     };
+    
+    const handleConfigUpdate = () => {
+      console.log('[Inbox] Config updated, triggering refresh...');
+      onRefreshStart();
+    };
 
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener('inbox-config-updated', handleConfigUpdate);
 
     return () => {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener('inbox-config-updated', handleConfigUpdate);
     };
   }, []);
 
