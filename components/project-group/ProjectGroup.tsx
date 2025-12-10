@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 
-import type { InboxItem } from "@/lib/schema/inbox.schema";
+import { TypedItem } from "@/lib/schema/item.schema";
 import { ChevronDown, Mail, MailOpen, MoreVertical } from "lucide-react";
 import {
   Collapsible,
@@ -53,16 +53,16 @@ export const ProjectCardComponent = ({
   onMarkAllAsRead,
   onMarkAllAsUnread,
 }: ProjectCardComponentProps) => {
-  const [expanded, setExpanded] = React.useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const IntegrationIcon = getInstanceIcon(instanceType || "");
 
   const childCount = React.Children.count(children);
-  const childItems: InboxItem[] = [];
+  const childItems: TypedItem[] = [];
   
   React.Children.forEach(children, (child) => {
     if (React.isValidElement(child)) {
-      const item = (child?.props as any)?.item as InboxItem | undefined;
+      const item = (child?.props as any)?.item as TypedItem | undefined;
       if (item) {
         childItems.push(item);
       }
