@@ -17,7 +17,7 @@ export function useBroker() {
     return {
       markAsRead: (itemId: string) => {},
       markAsUnread: (itemId: string) => {},
-      getInstances: () => [],
+      getInstances: (includeDisabled = false) => [],
       getInstance: () => null,
       fetchAllItems: async () => [],
       fetchItemsForInstance: async () => [],

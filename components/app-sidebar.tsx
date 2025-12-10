@@ -71,7 +71,7 @@ export function AppSidebar(props?: AppSidebarProps) {
     setMounted(true);
   }, []);
 
-  // Listen for updates to refresh badge counts
+  // Listen for updates to refresh badge counts and instances
   useEffect(() => {
     const handleUpdate = () => {
       setUpdateTrigger(prev => prev + 1);
@@ -80,28 +80,23 @@ export function AppSidebar(props?: AppSidebarProps) {
     // Listen for custom events from mark as read/unread actions
     window.addEventListener('inbox-items-updated', handleUpdate);
     
+    // Listen for instance changes (when integrations are added/removed)
+    window.addEventListener('instances-updated', handleUpdate);
+    
     // Also update on page visibility change (when user comes back to tab)
     document.addEventListener('visibilitychange', handleUpdate);
 
     return () => {
       window.removeEventListener('inbox-items-updated', handleUpdate);
+      window.removeEventListener('instances-updated', handleUpdate);
       document.removeEventListener('visibilitychange', handleUpdate);
     };
   }, []);
 
-  // Load instances only once when mounted, memoize to prevent re-renders
-  const instances = useMemo(() => {
-    if (!mounted) return [];
-    return broker.getInstances();
-  }, [mounted, broker]);
-
-  const adoInstances = useMemo(() => {
-    return instances.filter(i => i.instanceType === 'ado');
-  }, [instances]);
-
-  const ghInstances = useMemo(() => {
-    return instances.filter(i => i.instanceType === 'gh');
-  }, [instances]);
+  // Load instances - no memoization so they update when instances change
+  const instances = mounted ? broker.getInstances() : [];
+  const adoInstances = instances.filter(i => i.instanceType === 'ado');
+  const ghInstances = instances.filter(i => i.instanceType === 'gh');
 
   const handleTriggerPolling = () => {
     toast.info("Triggering polling check...");

@@ -96,7 +96,7 @@ export class InboxBroker {
   /**
    * Get all configured integration instances
    */
-  getInstances(): IntegrationInstance[] {
+  getInstances(includeDisabled = false): IntegrationInstance[] {
     if (typeof window === "undefined") {
       return [];
     }
@@ -106,7 +106,7 @@ export class InboxBroker {
       return [];
     }
 
-    return Object.values(config.instances);
+    return Object.values(config.instances).filter(i => includeDisabled || i.enabled);
   }
 
   getInstance(id: string): IntegrationInstance | null {

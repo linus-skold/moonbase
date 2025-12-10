@@ -18,7 +18,11 @@ export const integrationStorage = {
   saveInstance: (instance: IntegrationInstance): boolean => {
     const config = storage.load() ?? { instances: {} };
     config.instances[instance.id] = instance;
-    return storage.save(config);
+    const success = storage.save(config);
+    if (success && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('instances-updated'));
+    }
+    return success;
   },
 
   removeInstance: (instanceId: string): boolean => {
@@ -27,7 +31,11 @@ export const integrationStorage = {
       return false;
     }
     delete config.instances[instanceId];
-    return storage.save(config);
+    const success = storage.save(config);
+    if (success && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('instances-updated'));
+    }
+    return success;
   },
 
   loadAll: () => storage.load(),
