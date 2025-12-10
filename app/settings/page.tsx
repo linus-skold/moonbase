@@ -44,8 +44,19 @@ export default function SettingsPage() {
     return diffDays <= 3 && diffDays >= 0;
   });
 
+  const expiringSoonString = () => {
+    if (expiringInstances.length === 0) return ''; 
+    if (expiringInstances.length === 1) {
+      return `${expiringInstances[0].name} - Personal Access Token will expire within 3 days. Please update to maintain access.`;
+    }
+    const names = expiringInstances.map(inst => inst.name).join(', ');
+    return `${names} - Personal Access Tokens will expire within 3 days. Please update to maintain access.`;
+  }
+
+
   return (
     <div className="container mx-auto p-6 space-y-6">
+      
       {expiringInstances.length > 0 && (
         <div className="bg-red-600 text-white p-4 rounded-lg">
           <div className="flex items-center gap-2 font-semibold">
@@ -53,10 +64,11 @@ export default function SettingsPage() {
             Warning: PAT Expiring Soon
           </div>
           <p className="mt-2 text-sm">
-            {expiringInstances.map(inst => inst.name).join(', ')} - Personal Access Token{expiringInstances.length > 1 ? 's' : ''} will expire within 3 days. Please update to maintain access.
+            {expiringSoonString()}
           </p>
         </div>
       )}
+
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-2">
           <Button variant="ghost" size="sm" onClick={() => router.back()}>
@@ -69,10 +81,9 @@ export default function SettingsPage() {
           Configure your integrations and preferences here.
         </p>
       </div>
+      
       <div className="space-y-6">
-        <UserSettingsCard />
-        
-        <div>
+          <UserSettingsCard />
           <h2 className="text-2xl font-bold mb-4">Add Integrations</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {integrations.map((integration) => (
@@ -89,7 +100,6 @@ export default function SettingsPage() {
               />
             ))}
           </div>
-        </div>
       </div>
 
       <div className="space-y-4">
