@@ -68,7 +68,6 @@ export default function RootLayout({
                   <div className="flex flex-1 overflow-hidden">
                     <SidebarProvider>
                       <AppSidebar />
-                      <SidebarTrigger />
 
                       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-12">
                         {children}

@@ -17,6 +17,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarMenuBadge,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -63,6 +65,7 @@ export function AppSidebar(props?: AppSidebarProps) {
   const [updateTrigger, setUpdateTrigger] = useState(0);
 
   const broker = useBroker();
+  const { state } = useSidebar();
 
   useEffect(() => {
     setMounted(true);
@@ -119,32 +122,50 @@ export function AppSidebar(props?: AppSidebarProps) {
     }
   };
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   return (
     <CustomSidebar>
+      {/* Trigger inside sidebar when expanded */}
+      {state === "expanded" && (
+        <div className="flex items-center justify-between p-2 border-b">
+          <SidebarGroupLabel>Moonbase</SidebarGroupLabel>
+          <div className="flex items-center gap-1">
+            {isDevelopment && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Developer Options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleTriggerPolling}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <span>Trigger Polling Now</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleClearUnreadState}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Clear Unread State</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <SidebarTrigger />
+          </div>
+        </div>
+      )}
+      
+      {/* Free-floating trigger when collapsed */}
+      {state === "collapsed" && (
+        <div className="fixed left-0 top-[calc(var(--banner-height,0px)+0.5rem)] z-20 ml-2">
+          <SidebarTrigger />
+        </div>
+      )}
+      
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex items-center justify-between px-2">
-            <SidebarGroupLabel>Moonbase</SidebarGroupLabel>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Developer Options</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleTriggerPolling}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  <span>Trigger Polling Now</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleClearUnreadState}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Clear Unread State</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
