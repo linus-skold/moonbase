@@ -1,7 +1,7 @@
 "use client";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { integrationStorage } from "@/lib/utils/integration-storage";
 import { UserSettingsCard } from "@/components/settings/UserSettingsCard";
 import Link from "next/link";
@@ -11,24 +11,24 @@ import type { IntegrationInstance } from "@/lib/schema/config.schema";
 import { integrations } from "@/components/integration/registry";
 
 export default function SettingsPage() {
-  const [instances, setInstances] = React.useState<IntegrationInstance[]>([]);
-  const [refreshKey, setRefreshKey] = React.useState(0);
+  const [instances, setInstances] = useState<IntegrationInstance[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const loadInstances = React.useCallback(() => {
+  const loadInstances = useCallback(() => {
     const config = integrationStorage.loadAll();
     const allInstances = config ? Object.values(config.instances) : [];
     setInstances(allInstances);
   }, []);
 
-  const handleDelete = React.useCallback(() => {
+  const handleDelete = useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
 
-  const handleInstanceAdded = React.useCallback(() => {
+  const handleInstanceAdded = useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadInstances();
   }, [loadInstances, refreshKey]);
 
