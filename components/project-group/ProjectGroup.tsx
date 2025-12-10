@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { TypedItem } from "@/lib/schema/item.schema";
-import { ChevronDown, Mail, MailOpen, MoreVertical } from "lucide-react";
+import { Ban, ChevronDown, Mail, MailOpen, MoreVertical } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -127,6 +127,7 @@ export const ProjectCardComponent = ({
                   <Mail className="mr-2 h-4 w-4" />
                   Mark All as Read
                 </DropdownMenuItem>
+
                 ) : (
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -140,6 +141,10 @@ export const ProjectCardComponent = ({
                   Mark All as Unread
                 </DropdownMenuItem>
                 )}
+                <DropdownMenuItem disabled>
+                  <Ban className="mr-2 h-4 w-4" />
+                  Ignore Project (Coming Soon)
+                </DropdownMenuItem>
 
               </DropdownMenuContent>
             </DropdownMenu>
